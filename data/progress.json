@@ -1,0 +1,12 @@
+{
+  "seen": 0,
+  "correct": 0,
+  "by_category": {},
+  "streak": 0,
+  "best_streak": 0,
+  "last_day": null,
+  "answered_today": 0,
+  "mastery": {
+    "LLM01-012": "review"
+  }
+}
