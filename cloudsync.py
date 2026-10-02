@@ -223,7 +223,21 @@ def _to_common(p):
         "tool_drill": dict(p.get("tool_drill") or {}),
         "answered_today": p.get("answered_today", 0) or 0,
         "path": dict(p.get("path") or {}),
+        "typing": dict(p.get("typing") or {}),
     }
+
+
+def _merge_typing(a, b):
+    """Kor yazma gecmisi {tarih: {seconds, rounds, best_wpm}}: gun gun alan alan en buyuk."""
+    out = {}
+    for day in set(a) | set(b):
+        x, y = a.get(day) or {}, b.get(day) or {}
+        if not isinstance(x, dict) or not isinstance(y, dict):
+            out[day] = x if isinstance(x, dict) and x else y
+            continue
+        out[day] = {k: max(x.get(k, 0) or 0, y.get(k, 0) or 0)
+                    for k in ("seconds", "rounds", "best_wpm")}
+    return out
 
 
 def merge_progress(a, b):
@@ -281,6 +295,7 @@ def merge_progress(a, b):
         for part in ("read", "done"):
             path[part].update((src["path"] or {}).get(part) or {})
     out["path"] = path
+    out["typing"] = _merge_typing(A["typing"], B["typing"])
     out["_day"], out["_per"], out["_total"] = today, per, sum(per.values())
     return out
 
@@ -293,6 +308,7 @@ def to_desktop(m, base=None):
         "answered_today": m["answered_today"], "mastery": m["mastery"],
         "tools_tried": m["tools_tried"], "tool_drill": m["tool_drill"], "items": m["items"],
         "daily_plan": {"day": m["_day"], "per_area": m["_per"], "total": m["_total"]},
+        "typing": m["typing"],
     })
     return d
 
@@ -305,7 +321,7 @@ def to_store(m):
         "streak": m["streak"], "best_streak": m["best_streak"], "last_day": m["last_day"],
         "seen": m["seen"], "correct": m["correct"], "tools_tried": m["tools_tried"],
         "tool_drill": m["tool_drill"], "answered_today": m["answered_today"],
-        "path": m["path"],
+        "path": m["path"], "typing": m["typing"],
     }
 
 

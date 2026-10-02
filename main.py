@@ -22,6 +22,20 @@ import attackdb
 import quizgen
 import cloudsync
 import kivilcim
+import hacker_typing
+
+
+class _TypingStore:
+    """Kor yazma gecmisi progress.json icinde 'typing' anahtarinda durur.
+    attackdb.save_progress main'de PUSHER'a baglandigi icin gist'e kendiliginden senkronlanir."""
+
+    def load(self):
+        return dict(attackdb.load_progress().get("typing") or {})
+
+    def save(self, data):
+        p = attackdb.load_progress()      # diger anahtarlari ezmemek icin taze oku
+        p["typing"] = data
+        attackdb.save_progress(p)
 
 SYNC_STATE = {"content": None, "personal": None}
 PUSHER = None
@@ -148,6 +162,7 @@ class AISecurityLab(CTk):
             ("tooldrill", "🧪", "Araç Testi",       self.show_tool_drill,       None),
             ("encoding",  "🔐", "Kodlama Atölyesi", self.show_encoding_lab,     "DENE"),
             ("injection", "💉", "Prompt Injection", self.show_prompt_injection, None),
+            ("typing",    "⌨️", "Kör Yazma",       self.show_typing,           None),
             ("checklist", "✅", "OWASP Listesi",    self.show_owasp_checklist,  "KONTROL"),
         ]
         for key, icon, label, cmd, group in self.nav_items:
@@ -2989,6 +3004,23 @@ LLM10 - Improper Output Handling
             self.clipboard_append(text)
 
     # ============ PRATİK HEDEFLER ============
+    def show_typing(self):
+        self.clear_main_frame()
+        self.highlight_nav("typing")
+        self.current_view = "typing"
+        self._page_header(
+            "Kör Yazma",
+            "Günde 10 dk hacker komutu yaz. Kamera klavyeye baktığını yakalar ve pratiği askıya alır.")
+        try:
+            view = hacker_typing.HackerTypingFrame(
+                self.main_frame, store=_TypingStore(), log_path=None,
+                model_dir=os.path.join(attackdb.data_dir(), "models"))
+            view.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 16))
+            self.main_frame.grid_rowconfigure(1, weight=1)
+        except Exception as e:           # kamera/mediapipe sorunu tum uygulamayi dusurmesin
+            CTkLabel(self.main_frame, text="Kör Yazma başlatılamadı: %s" % e,
+                     text_color=TXT_DIM).grid(row=1, column=0, padx=26, pady=20, sticky="w")
+
     def show_practice(self):
         self.clear_main_frame()
         self.highlight_nav("practice")
