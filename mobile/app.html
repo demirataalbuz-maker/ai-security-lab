@@ -1,0 +1,1715 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AI Security</title>
+<meta name="description" content="OWASP LLM Top 10 çalışma uygulaması">
+<meta name="theme-color" content="#0e0d12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="AI Security">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anybody:wdth,wght@50..150,600..900&display=swap">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="apple-touch-icon.png">
+<style>
+/* iOS tasarım dili — sistem renkleri, sistem yazı tipi, gruplanmış kartlar.
+   Değişken adları eski temayla aynı tutuldu (JS satır içi stiller bunları kullanıyor). */
+:root{
+  color-scheme:dark;
+  --ink:#f2f2f7;            /* systemGroupedBackground */
+  --card:#ffffff;           /* secondarySystemGroupedBackground */
+  --panel:rgba(249,249,249,.94);
+  --sunk:rgba(118,118,128,.12);   /* tertiarySystemFill */
+  --line:rgba(60,60,67,.18);
+  --line-soft:rgba(60,60,67,.12);
+  --text:#000000;
+  --soft:rgba(60,60,67,.85);
+  --dim:rgba(60,60,67,.6);
+  --accent:#007aff; --accent-dim:#0062cc; --accent-ink:#ffffff;
+  --good:#34c759; --warn:#ff9500; --bad:#ff3b30;
+  --c1:#007aff; --c2:#5856d6; --c3:#ff2d55; --c4:#ff9500; --c5:#af52de;
+  --c6:#30b0c7; --c7:#ff3b30; --c8:#34c759; --c9:#5ac8fa; --c10:#a2845e;
+  --code:#1c1c1e;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",system-ui,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,"Cascadia Mono",Consolas,monospace;
+  --r:12px;
+  --shadow:0 1px 0 rgba(0,0,0,.02);
+}
+@media all{
+  /* irzubal "Mor Baski" gece baskisi: siyah kagit, mor vurgu */
+  :root{
+    --ink:#0e0d12; --card:#17151c; --panel:rgba(19,17,24,.86);
+    --sunk:rgba(172,160,196,.13);
+    --line:rgba(236,231,221,.14); --line-soft:rgba(236,231,221,.09);
+    --text:#ece7dd; --soft:#cfc9bf; --dim:#8a8494;
+    --accent:#c07cff; --accent-dim:#a860f0; --accent-ink:#0e0d12;
+    --good:#7fd6a4; --warn:#ffc15e; --bad:#ff4a3d;
+    --c1:#ff4a3d; --c2:#4a86ff; --c3:#c07cff; --c4:#ffc15e; --c5:#ff6fb5;
+    --c6:#4fd1c5; --c7:#ff8a4c; --c8:#7fd6a4; --c9:#8f94ff; --c10:#ff7089;
+    --code:#0b0a0e;
+    --display:"Anybody","Arial Narrow",var(--sans);
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  margin:0; background:var(--ink); color:var(--text);
+  font-family:var(--sans); font-size:17px; line-height:1.35; letter-spacing:-.41px;
+  -webkit-font-smoothing:antialiased; -webkit-text-size-adjust:100%;
+}
+.app{min-height:100%;display:flex;flex-direction:column}
+
+/* ---------- gezinme çubuğu (cam) ---------- */
+.top{
+  position:sticky; top:0; z-index:20;
+  background:var(--panel);
+  -webkit-backdrop-filter:saturate(180%) blur(20px); backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:.5px solid var(--line);
+  padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 10px;
+  display:flex; align-items:center; gap:10px; min-height:44px;
+}
+.brand{font-family:var(--display);font-stretch:85%;font-weight:800;font-size:19px;letter-spacing:0;display:flex;align-items:center;gap:8px}
+.brand .appicon{width:26px;height:26px;border-radius:6px;flex:none;
+  background:linear-gradient(160deg,#ff4a3d,#c07cff 50%,#4a86ff);
+  display:grid;place-items:center;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.08)}
+.brand .appicon svg{width:15px;height:15px;fill:#fff}
+.brand b{font-weight:600;color:inherit}
+.brand span{display:none}
+.topright{margin-left:auto;display:flex;align-items:center;gap:6px;
+  font-size:13px;color:var(--dim);letter-spacing:-.08px;cursor:pointer}
+.topright b{font-size:15px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.24px}
+.syncdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.syncdot.on{background:var(--good)}
+.syncdot.off{background:var(--warn)}
+
+main{flex:1;padding:6px 16px calc(96px + env(safe-area-inset-bottom,0px));max-width:720px;width:100%;margin:0 auto}
+
+/* ---------- sekme çubuğu (cam) ---------- */
+.tabs{
+  position:fixed; left:0; right:0; bottom:0; z-index:30;
+  display:grid; grid-template-columns:repeat(5,1fr);
+  background:var(--panel);
+  -webkit-backdrop-filter:saturate(180%) blur(20px); backdrop-filter:saturate(180%) blur(20px);
+  border-top:.5px solid var(--line);
+  padding:4px 4px calc(2px + env(safe-area-inset-bottom,0px));
+}
+.tab{
+  appearance:none;border:0;background:none;color:#999999;
+  font-family:var(--sans);font-size:10px;font-weight:500;letter-spacing:.1px;
+  padding:3px 2px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;
+  cursor:pointer;min-height:49px;justify-content:center;
+}
+.tab{color:#8e8e93}
+.tab svg{width:25px;height:25px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.tab[aria-selected="true"]{color:var(--accent)}
+.tab[aria-selected="true"] svg{stroke-width:2.1}
+
+/* ---------- ortak ---------- */
+h2{font-family:var(--display);font-stretch:80%;font-size:36px;font-weight:800;letter-spacing:-.2px;line-height:1.2;margin:10px 0 2px;text-wrap:balance}
+.sub{color:var(--dim);font-size:15px;letter-spacing:-.24px;line-height:1.4;margin:0 0 16px}
+.card{background:var(--card);border:0;border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
+.card + .card{margin-top:20px}
+.rule{display:none}
+.mono{font-family:var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.08px}
+.dim{color:var(--dim)}
+.soft{color:var(--soft)}
+button{font-family:inherit}
+.btn{
+  appearance:none;border:0;background:var(--sunk);color:var(--accent);
+  border-radius:12px;padding:12px 18px;font-size:17px;font-weight:600;letter-spacing:-.41px;
+  cursor:pointer;min-height:50px;transition:opacity .15s,transform .15s;
+}
+.btn:active{opacity:.6;transform:scale(.98)}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--accent);font-weight:400}
+.btn.full{width:100%}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+select,textarea,input[type=search],input[type=password],input[type=text]{
+  appearance:none;-webkit-appearance:none;background:var(--sunk);border:0;color:var(--text);
+  border-radius:10px;padding:11px 12px;font-family:inherit;font-size:17px;letter-spacing:-.41px;
+  min-height:44px;width:100%;
+}
+select{background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),linear-gradient(135deg,var(--dim) 50%,transparent 50%);
+  background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:34px}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:2px}
+
+/* ---------- plan şeridi (Etkinlik halkaları gibi) ---------- */
+.plan{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:8px;margin-top:14px}
+.pcell{background:var(--sunk);border:0;border-radius:10px;padding:8px 4px 7px;text-align:center}
+.pcell b{display:block;font-size:11px;font-weight:600;color:var(--dim);letter-spacing:.06px}
+.pcell i{display:block;font-style:normal;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--text);margin-top:1px;letter-spacing:-.24px}
+.pcell.done{background:color-mix(in srgb,var(--good) 16%,transparent)}
+.pcell.done i{color:var(--good)}
+.pcell.part i{color:var(--accent)}
+.bar{height:6px;background:var(--sunk);border-radius:99px;overflow:hidden;border:0}
+.bar > i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .4s cubic-bezier(.2,.8,.2,1)}
+
+/* ---------- sınav ---------- */
+.qmeta{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);letter-spacing:-.08px;margin-top:8px}
+.qmeta b{color:var(--text);font-weight:600}
+.badge{border:0;background:var(--sunk);border-radius:6px;padding:2px 7px;font-size:12px;font-weight:600;color:var(--soft);letter-spacing:0}
+.badge.hand{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}
+.qprompt{font-size:22px;font-weight:700;line-height:1.27;letter-spacing:.35px;margin:12px 0 0;text-wrap:pretty}
+.qctx{
+  background:var(--card);border:0;border-radius:12px;padding:14px 16px;margin-top:14px;
+  color:var(--soft);font-size:16px;line-height:1.45;letter-spacing:-.32px;max-height:40vh;overflow:auto;
+}
+.qctx.payload{font-family:var(--mono);font-size:14px;line-height:1.5;letter-spacing:0;color:#e5e5ea;background:var(--code);
+  white-space:pre-wrap;word-break:break-word}
+.opts{display:flex;flex-direction:column;gap:0;margin-top:18px;background:var(--card);border-radius:12px;overflow:hidden}
+.opt{
+  display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;
+  background:var(--card);border:0;border-radius:0;position:relative;
+  padding:14px 16px;color:var(--text);font-size:17px;line-height:1.3;letter-spacing:-.41px;
+  cursor:pointer;min-height:52px;transition:background .15s;
+}
+.opt + .opt::before{content:"";position:absolute;top:0;left:52px;right:0;height:.5px;background:var(--line)}
+.opt:active:not([disabled]){background:var(--sunk)}
+.opt kbd{
+  font-family:var(--sans);font-size:13px;font-weight:600;background:var(--sunk);border:0;
+  border-radius:50%;width:24px;height:24px;display:grid;place-items:center;padding:0;
+  color:var(--dim);flex:none;margin-top:-1px;letter-spacing:0;
+}
+.opt.correct{background:color-mix(in srgb,var(--good) 12%,var(--card))}
+.opt.correct kbd{background:var(--good);color:var(--accent-ink)}
+.opt.wrong{background:color-mix(in srgb,var(--bad) 10%,var(--card))}
+.opt.wrong kbd{background:var(--bad);color:var(--accent-ink)}
+.opt.muted{opacity:.4}
+.opt[disabled]{cursor:default}
+.verdict{margin-top:20px;padding:16px;border-radius:12px;border:0;background:var(--card)}
+.verdict h3{margin:0 0 8px;font-family:var(--display);font-stretch:85%;font-size:22px;font-weight:800;letter-spacing:0}
+.verdict.ok h3{color:var(--good)}
+.verdict.no h3{color:var(--bad)}
+.sureq{font-size:15px;color:var(--soft);margin:0 0 12px;letter-spacing:-.24px}
+.lesson{white-space:pre-wrap;font-size:15px;line-height:1.5;letter-spacing:-.24px;color:var(--soft);max-height:46vh;overflow:auto;margin-top:6px}
+.lesson a{color:var(--accent);word-break:break-all;text-decoration:none}
+
+/* ---------- listeler ---------- */
+.item{background:var(--card);border:0;border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.item h4{margin:0;font-size:17px;font-weight:600;line-height:1.3;letter-spacing:-.41px}
+.item .k{font-size:13px;letter-spacing:-.08px;color:var(--dim);font-family:var(--sans)}
+.item .ex{
+  font-family:var(--mono);font-size:13px;letter-spacing:0;color:#e5e5ea;background:var(--code);
+  border:0;border-radius:10px;padding:12px;margin-top:10px;
+  white-space:pre-wrap;word-break:break-word;max-height:30vh;overflow:auto;
+}
+.truth{display:inline-block;font-size:12px;font-weight:600;border-radius:6px;padding:3px 8px;margin-top:8px;letter-spacing:0}
+.truth.real{background:color-mix(in srgb,var(--good) 15%,transparent);color:var(--good);border:0}
+.truth.comp{background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn);border:0}
+.chips{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;margin:0 -16px 14px;padding:0 16px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  appearance:none;border:0;background:var(--sunk);color:var(--text);flex:none;
+  border-radius:99px;padding:7px 14px;font-size:15px;font-weight:500;letter-spacing:-.24px;cursor:pointer;min-height:34px;
+  transition:background .15s,color .15s;
+}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.empty{color:var(--dim);font-size:15px;padding:28px 4px;text-align:center}
+.count{font-size:13px;color:var(--dim);margin:2px 0 10px;text-transform:uppercase;letter-spacing:-.08px;font-family:var(--sans)}
+.report{white-space:pre-wrap;font-size:15px;line-height:1.5;letter-spacing:-.24px;color:var(--soft)}
+.report b{color:var(--text)}
+.tag{font-size:11px;font-weight:600;border-radius:5px;padding:2px 6px;border:0;background:var(--sunk);color:var(--dim);letter-spacing:.06px;font-family:var(--sans)}
+.tag.free{color:var(--good);background:color-mix(in srgb,var(--good) 14%,transparent)}
+.tag.paid{color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,transparent)}
+a.link{color:var(--accent);text-decoration:none;font-weight:400;font-size:15px}
+.selchip{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:40;
+  background:var(--accent);color:var(--accent-ink);border:0;border-radius:99px;
+  padding:12px 20px;font-family:var(--sans);font-weight:600;font-size:15px;
+  box-shadow:0 10px 30px rgba(0,0,0,.22);max-width:calc(100% - 32px);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;
+}
+#view > *{animation:rise .28s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ================= KIVILCIM (maskot) ================= */
+main{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+.kv-dock{position:fixed;right:10px;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:35;
+  width:74px;height:86px;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.kv-dock svg{width:100%;height:100%;overflow:visible}
+.kv-scale{transform-origin:100px 205px;transition:transform .7s cubic-bezier(.3,1.4,.5,1),filter .7s}
+.kv-flick{transform-origin:100px 205px;animation:kvFlick 1.6s ease-in-out infinite}
+.kv-flick2{transform-origin:100px 205px;animation:kvFlick2 1.1s ease-in-out infinite}
+@keyframes kvFlick{0%,100%{transform:scale(1,1) skewX(0)}30%{transform:scale(.98,1.04) skewX(-2deg)}60%{transform:scale(1.02,.97) skewX(2deg)}}
+@keyframes kvFlick2{0%,100%{transform:scale(1,1)}50%{transform:scale(.95,1.07) skewX(-3deg)}}
+.kv-body{transform-origin:100px 205px}
+.kv-body.happy{animation:kvHop 2.4s cubic-bezier(.3,0,.4,1) infinite}
+@keyframes kvHop{0%,60%,100%{transform:translateY(0)}72%{transform:translateY(-16px)}80%{transform:translateY(-16px)}92%{transform:translateY(0) scale(1.05,.93)}}
+.kv-body.wait,.kv-body.new{animation:kvSway 3s ease-in-out infinite}
+@keyframes kvSway{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+.kv-body.sulk{transform:scaleX(-1) rotate(-4deg)}
+.kv-body.out{animation:kvDroop 4s ease-in-out infinite}
+@keyframes kvDroop{0%,100%{transform:translateY(0)}50%{transform:translateY(3px) scale(1.02,.97)}}
+.kv-body.jump{animation:kvJump .6s cubic-bezier(.3,0,.4,1)}
+@keyframes kvJump{0%,100%{transform:translateY(0)}45%{transform:translateY(-26px) rotate(-6deg)}75%{transform:translateY(0) scale(1.08,.9)}}
+.kv-body.shake{animation:kvShake .5s}
+@keyframes kvShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
+.kv-pupils{animation:kvLook 4s ease-in-out infinite}
+@keyframes kvLook{0%,35%{transform:translateX(0)}45%,60%{transform:translateX(-4px)}70%,85%{transform:translateX(4px)}100%{transform:translateX(0)}}
+.kv-eyes{transform-origin:100px 153px;animation:kvBlink 4.5s infinite}
+@keyframes kvBlink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.kv-spark{animation:kvRise 1.8s linear infinite;opacity:0}
+@keyframes kvRise{0%{transform:translate(0,0);opacity:0}15%{opacity:1}100%{transform:translate(var(--dx),-120px);opacity:0}}
+.kv-smoke{animation:kvSmoke 3s ease-out infinite;opacity:0}
+@keyframes kvSmoke{0%{transform:translate(0,0) scale(.6);opacity:0}20%{opacity:.5}100%{transform:translate(-10px,-90px) scale(1.6);opacity:0}}
+.kv-crown{transform-origin:100px 20px;animation:kvCrown 2s ease-in-out infinite}
+@keyframes kvCrown{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-4px) rotate(4deg)}}
+.kv-bubble{position:fixed;right:12px;bottom:calc(154px + env(safe-area-inset-bottom,0px));z-index:36;
+  max-width:min(300px,calc(100% - 24px));background:var(--card);border:1px solid rgba(192,124,255,.35);
+  border-radius:16px 16px 4px 16px;padding:12px 14px;font-size:15px;line-height:1.4;letter-spacing:-.2px;color:var(--text);
+  box-shadow:0 12px 32px rgba(0,0,0,.5);transform-origin:100% 100%;animation:kvPop .35s cubic-bezier(.3,1.5,.5,1)}
+.kv-bubble[hidden]{display:none}
+.kv-bubble small{display:block;font-size:11px;font-weight:700;letter-spacing:.6px;color:var(--accent);margin-bottom:3px;font-family:var(--display);font-stretch:85%}
+.kv-bubble b{color:var(--accent)}
+.kv-bubble .kv-act{display:flex;gap:8px;margin-top:10px}
+.kv-bubble .kv-act button{flex:1;border:0;border-radius:10px;padding:9px 10px;font:600 14px var(--sans);cursor:pointer;background:var(--sunk);color:var(--text)}
+.kv-bubble .kv-act button.go{background:var(--accent);color:var(--accent-ink)}
+@keyframes kvPop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.kv-top{display:inline-flex;align-items:center;gap:3px;font-weight:700;font-size:15px;color:var(--text);margin-right:4px}
+.kv-top svg{width:14px;height:17px}
+.kv-confetti{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden}
+.kv-confetti i{position:absolute;width:8px;height:12px;border-radius:2px;opacity:0;animation:kvFall var(--t) cubic-bezier(.2,.6,.4,1) forwards}
+@keyframes kvFall{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--x),var(--y)) rotate(var(--r))}}
+.kv-puff{position:fixed;pointer-events:none;z-index:37;width:7px;height:7px;border-radius:50%;animation:kvPuff .9s ease-out forwards}
+@keyframes kvPuff{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--x),var(--y)) scale(.3)}}
+@media (prefers-reduced-motion:reduce){.kv-dock *,.kv-confetti,.kv-puff{animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="top">
+    <div class="brand"><i class="appicon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3zm-1.2 13.6-3.4-3.4 1.4-1.4 2 2 4.6-4.6 1.4 1.4-6 6z"/></svg></i><b>AI Security</b><span>owasp llm top 10</span></div>
+    <div class="topright">
+      <span class="kv-top" id="kvTop"></span><b id="todayCount">0/220</b><span>bugün</span>
+      <span class="syncdot" id="syncDot" title="senkron"></span>
+    </div>
+  </header>
+
+  <main id="view"></main>
+  <button class="selchip" id="selChip" hidden></button>
+  <button class="kv-dock" id="kvDock" aria-label="Kıvılcım"></button>
+  <div class="kv-bubble" id="kvBubble" role="status" hidden></div>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="path" aria-selected="true">
+      <svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M5 11v5c0 1.1 3.1 3 7 3s7-1.9 7-3v-5"/></svg>Yol</button>
+    <button class="tab" role="tab" data-tab="exam" aria-selected="false">
+      <svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>Sınav</button>
+    <button class="tab" role="tab" data-tab="scen" aria-selected="false">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h4M7 12h10M7 16h7"/></svg>Senaryo</button>
+    <button class="tab" role="tab" data-tab="lib" aria-selected="false">
+      <svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7"/></svg>Katalog</button>
+    <button class="tab" role="tab" data-tab="rep" aria-selected="false">
+      <svg viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M8 19v-6M12 19V8M16 19v-9M20 19v-4"/></svg>Rapor</button>
+  </nav>
+</div>
+
+<script id="seed" type="application/json">__SEED_DATA__</script>
+<script>
+(() => {
+"use strict";
+const SEED = JSON.parse(document.getElementById("seed").textContent);
+const CATS = SEED.categories;                 // {LLM01: "Prompt Injection", ...}
+const CAT_KEYS = Object.keys(CATS);
+const TOOL_AREA = "TOOLS";
+const AREAS = CAT_KEYS.concat([TOOL_AREA]);
+const AREA_NAME = Object.assign({}, CATS, {TOOLS: "Cephanelik"});
+const GOAL = 20;
+const BOX_DAYS = {1:1, 2:2, 3:4, 4:8, 5:16};   // en kısa aralık 1 gün (aynı gün = hatırlama, öğrenme değil)
+const CVAR = {}; CAT_KEYS.forEach((c,i) => CVAR[c] = "var(--c" + (i+1) + ")");
+const TOOL_TYPE = {offense:"Saldırı aracı", defense:"Savunma aracı",
+                   both:"Hem saldırı hem savunma", framework:"Çerçeve / bilgi kaynağı"};
+
+/* ================= durum ================= */
+const state = {
+  attacks: SEED.attacks || [],
+  tools: SEED.tools || [],
+  practice: SEED.practice || [],
+  questions: (SEED.questions || []).slice(),
+  scenarios: (SEED.scenarios || []).slice(),
+  path: (SEED.path || []),
+  notes: [],
+  reports: [],
+  progress: emptyProgress(),
+  token: "", gist: null, syncMsg: "", tab: "path",
+  exam: null, saving: false, dirty: false,
+};
+
+function emptyProgress(){
+  return {items:{}, by_category:{}, daily:{day:today(), per:{}, total:0},
+          streak:0, best_streak:0, last_day:null, seen:0, correct:0, mastery:{},
+          path:{read:{}, done:{}}};
+}
+function today(){ const d = new Date(); return d.getFullYear() + "-" +
+  String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+function daysSince(iso){
+  if(!iso) return 9999;
+  const a = new Date(iso + "T00:00:00"), b = new Date(today() + "T00:00:00");
+  return Math.round((b - a) / 86400000);
+}
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const trim = (s,n) => { s = String(s||"").replace(/\s+/g," ").trim();
+  return s.length <= n ? s : s.slice(0,n-1).trimEnd() + "…"; };
+const shuffle = a => { for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1));
+  [a[i],a[j]] = [a[j],a[i]]; } return a; };
+
+/* ================= yerel saklama ================= */
+const LS = "aisec-cep-progress-v1";
+function loadLocal(){
+  try{ const raw = localStorage.getItem(LS); if(raw) return JSON.parse(raw); }catch(e){}
+  return null;
+}
+function saveLocal(){
+  try{ localStorage.setItem(LS, JSON.stringify(state.progress)); }catch(e){}
+}
+
+/* ================= ilerleme birleştirme (telefon ↔ masaüstü) ================= */
+function mergeProgress(a, b){
+  if(!a) return b; if(!b) return a;
+  const out = {items:{}, by_category:{}, mastery:{},
+    daily:{day:today(), per:{}, total:0},
+    streak: Math.max(a.streak||0, b.streak||0),
+    best_streak: Math.max(a.best_streak||0, b.best_streak||0),
+    last_day: (a.last_day||"") > (b.last_day||"") ? a.last_day : b.last_day,
+    seen: Math.max(a.seen||0, b.seen||0), correct: Math.max(a.correct||0, b.correct||0)};
+  const keys = new Set(Object.keys(a.items||{}).concat(Object.keys(b.items||{})));
+  keys.forEach(k => {
+    const x = (a.items||{})[k], y = (b.items||{})[k];
+    if(!x || !y){ out.items[k] = x || y; return; }
+    // aynı gün eşitliğinde: sonucu bilinen (yeni biçim) kayıt, o da eşitse temkinli olan (düşük kutu)
+    const newer = (x.last||"") !== (y.last||"") ? ((x.last||"") > (y.last||"") ? x : y)
+      : (!!x.last_result !== !!y.last_result ? (x.last_result ? x : y)
+      : ((x.box||1) <= (y.box||1) ? x : y));
+    out.items[k] = {n:Math.max(x.n||0,y.n||0), ok:Math.max(x.ok||0,y.ok||0),
+      bad:Math.max(x.bad||0,y.bad||0), elim:Math.max(x.elim||0,y.elim||0),
+      box:newer.box||1, last:newer.last||null};
+    if(newer.last_result) out.items[k].last_result = newer.last_result;
+  });
+  AREAS.forEach(c => {
+    const x = (a.by_category||{})[c], y = (b.by_category||{})[c];
+    if(x || y) out.by_category[c] = {seen:Math.max((x||{}).seen||0,(y||{}).seen||0),
+                                     correct:Math.max((x||{}).correct||0,(y||{}).correct||0)};
+  });
+  Object.assign(out.mastery, b.mastery||{}, a.mastery||{});
+  out.path = {read:{}, done:{}};
+  [b, a].forEach(src => {
+    Object.assign(out.path.read, ((src||{}).path||{}).read || {});
+    Object.assign(out.path.done, ((src||{}).path||{}).done || {});
+  });
+  const da = (a.daily||{}), dbb = (b.daily||{});
+  [da, dbb].forEach(d => {
+    if(d.day !== today()) return;
+    Object.keys(d.per || {}).forEach(k =>
+      out.daily.per[k] = Math.max(out.daily.per[k]||0, d.per[k]||0));
+  });
+  out.daily.total = Object.values(out.daily.per).reduce((s,v) => s+v, 0);
+  return out;
+}
+
+/* ================= soru motoru (quizgen portu) ================= */
+const A_TMPL = ["story2cat","story2tech","tech2cat","payload2tech","why2tech",
+                "mitig2tech","case2tech","tech2mitig","cat2tech"];
+const NEED = {story2cat:"story", story2tech:"story", payload2tech:"example",
+              why2tech:"why", mitig2tech:"mitigation", case2tech:"real_case",
+              tech2mitig:"mitigation"};
+
+function buildSpecs(){
+  const out = [];
+  state.attacks.forEach(a => {
+    if(!a.id || !CATS[a.category]) return;
+    A_TMPL.forEach(t => {
+      const need = NEED[t];
+      if(need && !String(a[need]||"").trim()) return;
+      out.push({key:a.id + "|" + t, tmpl:t, area:a.category, src:a.id});
+    });
+  });
+  state.tools.forEach(t => {
+    if(!t.id) return;
+    ["func2tool","tool2func","tool2type"].forEach(k =>
+      out.push({key:t.id + "|" + k, tmpl:k, area:TOOL_AREA, src:t.id}));
+  });
+  CAT_KEYS.forEach(c => ["code2name","name2code"].forEach(k =>
+    out.push({key:c + "|" + k, tmpl:k, area:c, src:c})));
+  state.questions.forEach(q => {
+    if(q && q.id) out.push({key:q.id + "|hand", tmpl:"hand", area:q.area, src:q.id});
+  });
+  return out;
+}
+
+const findAttack = id => state.attacks.find(a => a.id === id);
+const findTool = id => state.tools.find(t => t.id === id);
+
+function distinctPick(pool, correct, n, keyf){
+  const seen = new Set([String(keyf(correct)||"").trim().toLowerCase()]);
+  const out = [];
+  for(const it of pool){
+    if(out.length >= n) break;
+    const v = String(keyf(it)||"").trim();
+    if(!v || seen.has(v.toLowerCase())) continue;
+    seen.add(v.toLowerCase()); out.push(it);
+  }
+  return out;
+}
+function siblings(entry){
+  const same = shuffle(state.attacks.filter(a => a.category === entry.category && a.id !== entry.id));
+  const other = shuffle(state.attacks.filter(a => a.category !== entry.category));
+  return same.concat(other);
+}
+function finish(spec, area, prompt, ctx, opts, correct, extra){
+  opts = opts.filter(o => String(o||"").trim());
+  if(opts.length < 3) return null;
+  const shuffled = shuffle(opts.slice());
+  return Object.assign({key:spec.key, tmpl:spec.tmpl, area, prompt,
+    context:ctx || "", options:shuffled, answer:shuffled.indexOf(correct)}, extra || {});
+}
+
+function makeQuestion(spec){
+  const t = spec.tmpl;
+  if(t === "hand"){
+    const q = state.questions.find(x => x.id === spec.src);
+    if(!q || !q.options || q.options.length < 3) return null;
+    const correct = q.options[q.answer];
+    return finish(spec, q.area, q.prompt, q.context, q.options.slice(), correct,
+      {hand:q, entry: q.source_id ? findAttack(q.source_id) : null});
+  }
+  if(t === "code2name" || t === "name2code"){
+    const cat = spec.src, name = CATS[cat];
+    const others = shuffle(CAT_KEYS.filter(c => c !== cat)).slice(0,3);
+    if(t === "code2name")
+      return finish(spec, cat, "OWASP LLM Top 10: '" + cat + "' hangi kategoridir?", "",
+        [name].concat(others.map(c => CATS[c])), name);
+    return finish(spec, cat, "OWASP LLM Top 10: '" + name + "' hangi koddur?", "",
+      [cat].concat(others), cat);
+  }
+  if(t === "func2tool" || t === "tool2func" || t === "tool2type"){
+    const tool = findTool(spec.src); if(!tool) return null;
+    const pool = shuffle(state.tools.filter(x => x.id !== spec.src));
+    if(t === "func2tool"){
+      if(!String(tool.what||"").trim()) return null;
+      const ds = distinctPick(pool, tool, 3, x => x.name);
+      return finish(spec, TOOL_AREA, "Şu işi yapan araç hangisidir?", trim(tool.what,420),
+        [tool.name].concat(ds.map(d => d.name)), tool.name, {tool});
+    }
+    if(t === "tool2func"){
+      const correct = trim(tool.what, 170);
+      const ds = distinctPick(pool, tool, 3, x => trim(x.what,170));
+      return finish(spec, TOOL_AREA, "'" + tool.name + "' aracı ne işe yarar?", "",
+        [correct].concat(ds.map(d => trim(d.what,170))), correct, {tool});
+    }
+    const correct = TOOL_TYPE[tool.type] || "Bilinmiyor";
+    const opts = [correct].concat(Object.values(TOOL_TYPE).filter(v => v !== correct)).slice(0,4);
+    return finish(spec, TOOL_AREA, "'" + tool.name + "' aracı hangi türdendir?",
+      trim(tool.what,220), opts, correct, {tool});
+  }
+  const e = findAttack(spec.src); if(!e) return null;
+  const cat = e.category, catLabel = cat + " — " + CATS[cat];
+  const sib = siblings(e);
+  const techOpts = () => [e.technique].concat(
+    distinctPick(sib, e, 3, a => a.technique).map(a => a.technique));
+  const catOpts = () => [catLabel].concat(
+    shuffle(CAT_KEYS.filter(c => c !== cat)).slice(0,3).map(c => c + " — " + CATS[c]));
+
+  switch(t){
+    case "story2cat":
+      return finish(spec, cat, "Bu olay hangi OWASP LLM kategorisine girer?", e.story, catOpts(), catLabel, {entry:e});
+    case "story2tech":
+      return finish(spec, cat, "Anlatılan saldırı tekniği hangisidir?", e.story, techOpts(), e.technique, {entry:e});
+    case "tech2cat":
+      return finish(spec, cat, "'" + e.technique + "' tekniği hangi kata girer?", "", catOpts(), catLabel, {entry:e});
+    case "payload2tech":
+      return finish(spec, cat, "Aşağıdaki payload / iz hangi tekniğe aittir?", trim(e.example,500),
+        techOpts(), e.technique, {entry:e, payload:true});
+    case "why2tech":
+      return finish(spec, cat, "Bu açıklama hangi tekniğin NEDEN çalıştığını anlatır?", e.why,
+        techOpts(), e.technique, {entry:e});
+    case "mitig2tech":
+      return finish(spec, cat, "Bu önlem hangi saldırıya karşı alınır?", e.mitigation,
+        techOpts(), e.technique, {entry:e});
+    case "case2tech":
+      return finish(spec, cat, "Bu gerçek olay hangi tekniğe örnektir?", e.real_case,
+        techOpts(), e.technique, {entry:e});
+    case "tech2mitig": {
+      const correct = trim(e.mitigation,170);
+      if(!correct) return null;
+      const ds = distinctPick(sib.filter(a => String(a.mitigation||"").trim()), e, 3,
+        a => trim(a.mitigation,170));
+      return finish(spec, cat, "'" + e.technique + "' saldırısına karşı doğru önlem hangisidir?", "",
+        [correct].concat(ds.map(d => trim(d.mitigation,170))), correct, {entry:e});
+    }
+    case "cat2tech": {
+      const others = shuffle(state.attacks.filter(a => a.category !== cat));
+      const ds = distinctPick(others, e, 3, a => a.technique);
+      return finish(spec, cat, "Aşağıdakilerden hangisi " + catLabel + " kapsamındadır?", "",
+        [e.technique].concat(ds.map(d => d.technique)), e.technique, {entry:e});
+    }
+  }
+  return null;
+}
+
+/* ---- seçim: elle yazılan → yanlışlar → tekrarı gelen → havuz ---- */
+function itemStat(key){
+  const r = state.progress.items[key];
+  return r ? {n:r.n||0, ok:r.ok||0, bad:r.bad||0, elim:r.elim||0, box:r.box||1, last:r.last||null}
+           : {n:0, ok:0, bad:0, elim:0, box:1, last:null};
+}
+function catAcc(){
+  const out = {};
+  AREAS.forEach(c => {
+    const r = state.progress.by_category[c];
+    out[c] = (r && r.seen) ? r.correct / r.seen : null;
+  });
+  return out;
+}
+function specWeight(spec, acc){
+  const st = itemStat(spec.key);
+  let w;
+  if(!st.n) w = 3.0;
+  else if(daysSince(st.last) >= (BOX_DAYS[st.box] || 0)) w = 2.2 + 0.8*st.bad + 0.6*st.elim;
+  else w = 0.1;
+  const a = acc[spec.area];
+  w *= (a === null || a === undefined) ? 1.8 : (1 + (1-a)*1.5);
+  if(spec.tmpl === "hand") w *= 1.4;
+  return Math.max(w, 0.01);
+}
+function weightedTake(pool, weights, n, usedSrc, maxPerSrc){
+  const out = []; const list = pool.slice();
+  while(list.length && out.length < n){
+    let total = 0; list.forEach(s => total += weights[s.key]);
+    if(total <= 0) break;
+    let r = Math.random()*total, idx = list.length-1;
+    for(let i=0;i<list.length;i++){ r -= weights[list[i].key]; if(r <= 0){ idx = i; break; } }
+    const s = list.splice(idx,1)[0];
+    if((usedSrc[s.src]||0) >= maxPerSrc) continue;
+    usedSrc[s.src] = (usedSrc[s.src]||0) + 1;
+    out.push(s);
+  }
+  return out;
+}
+/* Ezber/hatırlama koruması — masaüstündeki quizgen.pick_batch ile aynı kurallar:
+   bugün yanlış/eleyerek yapılan teknik bugün HİÇ gelmez; aynı soru aynı gün
+   iki kez gelmez; zayıf teknik vadesi gelince FARKLI kalıpla (ayna hariç) gelir;
+   sınavda teknik başına 1, günde en fazla 2 soru. */
+const MIRROR = {mitig2tech:"tech2mitig", tech2mitig:"mitig2tech",
+  code2name:"name2code", name2code:"code2name", func2tool:"tool2func",
+  tool2func:"func2tool", story2cat:"tech2cat", tech2cat:"story2cat"};
+const DAY_CAP = 2;
+function isWeak(r){
+  if(r.last_result) return r.last_result === "bad" || r.last_result === "elim";
+  return !!(r.bad || r.elim) && (r.box || 1) <= 1;
+}
+const isDue = r => daysSince(r.last) >= (BOX_DAYS[r.box || 1] || 1);
+function dayState(){
+  const t = today(), wrong = new Set(), seen = new Set(), srcToday = {}, weak = {};
+  Object.entries(state.progress.items || {}).forEach(([key, r]) => {
+    if(!r) return;
+    const i = key.indexOf("|"), src = key.slice(0, i), tmpl = key.slice(i+1);
+    if(r.last === t){
+      seen.add(key); srcToday[src] = (srcToday[src]||0) + 1;
+      if(r.last_result === "bad" || r.last_result === "elim" ||
+         (!r.last_result && (r.bad || r.elim))) wrong.add(src);
+    }
+    if(isWeak(r)){
+      const w = weak[src] || (weak[src] = {failed:new Set(), due:true});
+      w.failed.add(tmpl);
+      if(!isDue(r)) w.due = false;
+    }
+  });
+  return {wrong, seen, srcToday, weak};
+}
+function pickBatch(specs, n, area){
+  const pool = specs.filter(s => !area || s.area === area);
+  if(!pool.length) return [];
+  const ds = dayState(), items = state.progress.items || {};
+  const avail = pool.filter(s => !ds.wrong.has(s.src) && !ds.seen.has(s.key) &&
+                                 (ds.srcToday[s.src]||0) < DAY_CAP);
+  if(!avail.length) return [];
+  const acc = catAcc(), weights = {};
+  avail.forEach(s => weights[s.key] = specWeight(s, acc));
+  const bySrc = {};
+  avail.forEach(s => (bySrc[s.src] = bySrc[s.src] || []).push(s));
+
+  const fresh = avail.filter(s => s.tmpl === "hand" && !items[s.key]);
+  const comeback = [];
+  Object.entries(ds.weak).forEach(([src, w]) => {
+    if(!w.due || !bySrc[src]) return;
+    let c = bySrc[src].filter(s => !w.failed.has(s.tmpl) && !w.failed.has(MIRROR[s.tmpl]));
+    if(!c.length) c = bySrc[src].slice();
+    c.sort((a,b) => ((items[a.key]||{}).n||0) - ((items[b.key]||{}).n||0) || Math.random()-0.5);
+    comeback.push(c[0]);
+  });
+  const handDue = avail.filter(s => s.tmpl === "hand" && items[s.key] && isDue(items[s.key]));
+  const taken = new Set(fresh.concat(comeback, handDue).map(s => s.key));
+  const rest = avail.filter(s => !taken.has(s.key));
+
+  const used = {}; let out = [];
+  [fresh, comeback, handDue, rest].forEach(g => {
+    if(out.length >= n) return;
+    out = out.concat(weightedTake(g, weights, n - out.length, used, 1));
+  });
+  if(out.length < n){                       // ince katta ikinci (farklı kalıp) soruya izin
+    const have = new Set(out.map(s => s.key));
+    const usedDay = Object.assign({}, ds.srcToday);
+    Object.entries(used).forEach(([k,v]) => usedDay[k] = (usedDay[k]||0) + v);
+    out = out.concat(weightedTake(avail.filter(s => !have.has(s.key)), weights,
+                                  n - out.length, usedDay, DAY_CAP));
+  }
+  return out;
+}
+
+function record(q, correct, sure){
+  const p = state.progress;
+  const _kvBefore = {best: p.best_streak || 0, area: q.area || TOOL_AREA};
+  if(p.daily.day !== today()) p.daily = {day:today(), per:{}, total:0};
+  const rec = p.items[q.key] || {n:0, ok:0, bad:0, elim:0, box:1, last:null};
+  rec.n++;
+  if(correct && sure){ rec.ok++; rec.box = Math.min(5, rec.box + 1); rec.last_result = "ok"; }
+  else if(correct){ rec.ok++; rec.elim++; rec.box = 1; rec.last_result = "elim"; }
+  else { rec.bad++; rec.box = 1; rec.last_result = "bad"; }
+  rec.last = today();
+  p.items[q.key] = rec;
+
+  const area = q.area || TOOL_AREA;
+  p.daily.per[area] = (p.daily.per[area]||0) + 1;
+  p.daily.total++;
+  const bc = p.by_category[area] || {seen:0, correct:0};
+  bc.seen++; if(correct && sure) bc.correct++;
+  p.by_category[area] = bc;
+  p.seen++; if(correct && sure) p.correct++;
+
+  if(p.last_day !== today()){
+    const d = daysSince(p.last_day);
+    p.streak = (p.last_day && d === 1) ? (p.streak||0) + 1 : 1;
+    p.best_streak = Math.max(p.best_streak||0, p.streak);
+    p.last_day = today();
+  }
+  saveLocal(); scheduleSync(); paintTop();
+  try{ KV.onRecord(correct, sure, _kvBefore); }catch(e){}
+}
+
+function planRows(){
+  const p = state.progress;
+  if(p.daily.day !== today()) p.daily = {day:today(), per:{}, total:0};
+  return AREAS.map(a => {
+    const done = p.daily.per[a] || 0;
+    return {area:a, done, goal:GOAL, ok: done >= GOAL};
+  });
+}
+function nextArea(){
+  const acc = catAcc();
+  const left = planRows().filter(r => !r.ok)
+    .map(r => [r.goal - r.done, acc[r.area] === null || acc[r.area] === undefined ? -1 : acc[r.area], r.area]);
+  if(!left.length) return null;
+  left.sort((x,y) => (y[0]-x[0]) || (x[1]-y[1]));
+  return left[0][2];
+}
+function weakAreas(n){
+  const acc = catAcc(), rows = [];
+  AREAS.forEach(a => {
+    const r = state.progress.by_category[a] || {};
+    if(!r.seen) rows.push([-1, a]);
+    else if(r.seen >= 3) rows.push([acc[a], a]);
+  });
+  rows.sort((x,y) => x[0]-y[0]);
+  return rows.slice(0, n||3).map(r => r[1]);
+}
+function practiceFor(cat){
+  const order = {free:0, "free-tier":1, paid:2};
+  return state.practice
+    .filter(t => !cat || (t.areas||[]).includes(cat))
+    .sort((a,b) => (order[a.cost] ?? 3) - (order[b.cost] ?? 3));
+}
+function lessonText(e){
+  const out = [];
+  out.push(e.category + " — " + (CATS[e.category]||""));
+  out.push("TEKNİK: " + e.technique);
+  if(e.story) out.push("\nSENARYO: " + e.story);
+  if(e.why) out.push("\nNEDEN ÇALIŞIR: " + e.why);
+  if(e.example) out.push("\nPAYLOAD: " + e.example);
+  if(e.how_to_use) out.push("\nNASIL KULLANILIR: " + e.how_to_use);
+  if(e.mitigation) out.push("\nÖNLEM: " + e.mitigation);
+  if(e.real_case) out.push("\nGERÇEK OLAY: " + e.real_case);
+  if(e.source) out.push("\nKAYNAK: " + e.source);
+  const pr = practiceFor(e.category).slice(0,2);
+  if(pr.length) out.push("\n🎯 PRATİK: " + pr.map(t => t.name + " — " + t.url).join("   ·   "));
+  return out.join("\n");
+}
+const linkify = s => esc(s).replace(/(https?:\/\/[^\s<]+)/g,
+  '<a class="link" href="$1" target="_blank" rel="noopener">$1</a>');
+
+/* ================= senkron (kişisel GitHub gist) =================
+   İçerik (sorular, senaryolar) bu sayfanın içinde gelir; sayfa her sabah yeniden
+   yayımlanır. İlerleme + notlar + raporlar ise kullanıcının KENDİ gizli gist'inde
+   durur; laptop uygulaması da aynı gist'i kullanır. Anahtar yoksa her şey bu
+   cihazda kalır (arkadaş modu). */
+const LST = "aisec-gh-token", LSG = "aisec-gh-gist";
+const GIST_DESC = "ai-security-lab-sync";
+let syncTimer = null;
+function lsGet(k){ try{ return localStorage.getItem(k) || ""; }catch(e){ return ""; } }
+function lsSet(k, v){ try{ v ? localStorage.setItem(k, v) : localStorage.removeItem(k); }catch(e){} }
+function setDot(cls, title){
+  const d = document.getElementById("syncDot");
+  d.className = "syncdot " + (cls||"");
+  d.title = title || "";
+  state.syncMsg = title || "";
+}
+async function gh(path, opts){
+  opts = opts || {};
+  const r = await fetch("https://api.github.com" + path, {
+    method: opts.method || "GET",
+    headers: Object.assign({"Accept":"application/vnd.github+json",
+                            "Authorization":"Bearer " + state.token},
+                           opts.body ? {"Content-Type":"application/json"} : {}),
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+    cache: "no-store",
+  });
+  if(!r.ok) throw new Error("GitHub " + r.status);
+  return r.json();
+}
+async function findGist(){
+  let gid = lsGet(LSG);
+  if(gid) return gid;
+  for(let page = 1; page <= 3; page++){
+    const rows = await gh("/gists?per_page=100&page=" + page);
+    const g = rows.find(x => x.description === GIST_DESC);
+    if(g){ lsSet(LSG, g.id); return g.id; }
+    if(rows.length < 100) break;
+  }
+  const g = await gh("/gists", {method:"POST", body:{description:GIST_DESC, public:false,
+    files:{"sync.json":{content:JSON.stringify({progress:{}, notes:[], updated:new Date().toISOString(), device:"cep"})},
+           "reports.json":{content:"[]"}}}});
+  lsSet(LSG, g.id);
+  return g.id;
+}
+async function readGist(){
+  const g = await gh("/gists/" + state.gist);
+  const file = async name => {
+    const f = (g.files || {})[name];
+    if(!f) return null;
+    let raw = f.content;
+    if(f.truncated && f.raw_url) raw = await (await fetch(f.raw_url, {cache:"no-store"})).text();
+    try{ return JSON.parse(raw || "null"); }catch(e){ return null; }
+  };
+  return {sync: (await file("sync.json")) || {}, reports: (await file("reports.json")) || []};
+}
+function mergeNotes(a, b){
+  const by = {}, order = [];
+  (a || []).concat(b || []).forEach(n => {
+    if(!n || !n.id) return;
+    const cur = by[n.id];
+    if(!cur){ by[n.id] = Object.assign({}, n); order.push(n.id); }
+    else if((n.answer || "").trim() && !(cur.answer || "").trim()){
+      cur.answer = n.answer; cur.answered_day = n.answered_day || "";
+    }
+  });
+  return order.map(i => by[i]).sort((x,y) =>
+    ((x.day||"") + (x.time||"")).localeCompare((y.day||"") + (y.time||"")));
+}
+function scheduleSync(){
+  state.dirty = true;
+  if(syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(pushProgress, 2500);
+}
+async function pushProgress(){
+  if(!state.gist || state.saving || !state.dirty) return;
+  state.saving = true; state.dirty = false;
+  try{
+    // oku → birleştir → yaz: laptopun bu arada yazdıkları kaybolmasın
+    const cur = (await readGist()).sync;
+    const remoteP = cur.progress || {};
+    state.progress = mergeProgress(state.progress, remoteP);
+    state.notes = mergeNotes(state.notes, cur.notes);
+    saveLocal(); saveNotesLocal();
+    // laptopa özgü alanlar (tools_tried vb.) telefonda yok; üzerine yazmadan koru
+    const progress = Object.assign({}, remoteP, state.progress);
+    await gh("/gists/" + state.gist, {method:"PATCH", body:{files:{"sync.json":{content:
+      JSON.stringify({progress, notes: state.notes, updated: new Date().toISOString(), device:"cep"})}}}});
+    setDot("on", "senkron: " + new Date().toLocaleTimeString("tr-TR"));
+  }catch(e){
+    state.dirty = true;
+    setDot("off", "senkron bekliyor (" + e.message + ")");
+  }finally{
+    state.saving = false;
+    if(state.dirty) setTimeout(scheduleSync, 15000);
+  }
+}
+async function initDb(){
+  state.token = lsGet(LST).trim();
+  if(!state.token){ setDot("off", "senkron kapalı — ilerlemen bu cihazda"); return; }
+  try{
+    state.gist = await findGist();
+    const {sync, reports} = await readGist();
+    if(sync.progress) state.progress = mergeProgress(state.progress, sync.progress);
+    state.notes = mergeNotes(state.notes, sync.notes);
+    state.reports = (Array.isArray(reports) ? reports : [])
+      .slice().sort((a,b) => (b.day||"").localeCompare(a.day||""));
+    saveLocal(); saveNotesLocal();
+    setDot("on", "senkron açık");
+  }catch(e){
+    state.gist = null;
+    setDot("off", "senkron olmadı (" + e.message + ") — anahtarı kontrol et");
+  }
+  specs = buildSpecs();
+  paintTop(); render();
+  try{ KV.paint(); }catch(e){}
+  if(state.dirty) pushProgress();
+}
+
+/* ================= görünüm ================= */
+let specs = [];
+const view = () => document.getElementById("view");
+
+function paintTop(){
+  const rows = planRows();
+  const done = rows.reduce((s,r) => s + r.done, 0);
+  document.getElementById("todayCount").textContent = done + "/" + (GOAL * AREAS.length);
+}
+
+function planStrip(){
+  const rows = planRows();
+  const done = rows.reduce((s,r) => s+r.done, 0), goal = GOAL * AREAS.length;
+  return '<div class="card"><div style="display:flex;align-items:baseline;gap:8px">' +
+    '<b style="font-size:14px">Bugünkü plan</b>' +
+    '<span class="mono dim" style="font-size:11px;margin-left:auto">' + done + " / " + goal +
+    "  ·  seri " + (state.progress.streak||0) + " gün</span></div>" +
+    '<div class="bar" style="margin-top:9px"><i style="width:' +
+      Math.min(100, goal ? done/goal*100 : 0) + '%"></i></div>' +
+    '<div class="plan">' + rows.map(r =>
+      '<div class="pcell ' + (r.ok ? "done" : (r.done ? "part" : "")) + '">' +
+      "<b>" + r.area + "</b><i>" + r.done + "/" + r.goal + "</i></div>").join("") +
+    "</div></div>";
+}
+
+/* ---------- sınav ---------- */
+function renderExam(){
+  const ex = state.exam;
+  if(!ex){
+    const opts = ['<option value="">Günlük plan — sıradaki alan</option>',
+                  '<option value="ALL">Karışık — bütün alanlar</option>']
+      .concat(CAT_KEYS.map(c => '<option value="' + c + '">' + c + " — " + esc(CATS[c]) + "</option>"))
+      .concat(['<option value="TOOLS">Cephanelik — araçlar</option>']).join("");
+    const hand = state.questions.length;
+    view().innerHTML = "<h2>Sınav</h2><div class='rule'></div>" +
+      "<p class='sub'>Havuzda <b>" + specs.length + "</b> soru künyesi var; <b>" + hand +
+      "</b> tanesi elle yazılmış. Sıra: önce yeni yazılan sorular, sonra yanlış yaptıkların " +
+      "ve 'eleyerek buldum' dediklerin, en son havuz.</p>" +
+      planStrip() +
+      "<div class='card'><label class='mono dim' style='font-size:10px;letter-spacing:.5px'>ALAN</label>" +
+      "<select id='exArea' style='margin-top:6px'>" + opts + "</select>" +
+      "<div class='row' style='margin-top:10px'>" +
+      "<select id='exCount' style='flex:1'><option>10</option><option selected>20</option><option>40</option></select>" +
+      "<button class='btn primary' id='exStart' style='flex:2'>▶  Başlat</button></div></div>";
+    document.getElementById("exStart").onclick = startExam;
+    return;
+  }
+  if(ex.done) return renderExamDone();
+  const q = ex.q;
+  const total = ex.batch.length;
+  view().innerHTML =
+    "<div class='qmeta'><b>SORU " + (ex.i+1) + " / " + total + "</b>" +
+    "<span class='badge'>" + q.area + "</span>" +
+    (q.tmpl === "hand" ? "<span class='badge hand'>elle yazıldı</span>" : "") +
+    "<button class='btn ghost' id='exQuit' style='margin-left:auto;padding:4px 10px;min-height:32px;font-size:12px'>bitir</button></div>" +
+    "<p class='qprompt'>" + esc(q.prompt) + "</p>" +
+    (q.context ? "<div class='qctx" + (q.payload ? " payload" : "") + "'>" + esc(q.context) + "</div>" : "") +
+    "<div class='opts' id='opts'>" + q.options.map((o,i) =>
+      "<button class='opt' data-i='" + i + "'><kbd>" + "ABCD"[i] + "</kbd><span>" + esc(o) + "</span></button>"
+    ).join("") + "</div><div id='after'></div>" + noteBoxHtml();
+  document.getElementById("exQuit").onclick = () => { state.exam.done = true; render(); };
+  document.querySelectorAll("#opts .opt").forEach(b =>
+    b.onclick = () => answer(parseInt(b.dataset.i, 10)));
+  wireNoteBox();
+}
+
+function startExam(){
+  const sel = document.getElementById("exArea").value;
+  const n = parseInt(document.getElementById("exCount").value, 10) || 20;
+  let area = null;
+  if(sel === "") area = nextArea();
+  else if(sel !== "ALL") area = sel;
+  const batch = pickBatch(specs, n, area);
+  if(!batch.length){ alert("Bu alanda gösterilecek soru bulunamadı."); return; }
+  state.exam = {batch, i:0, correct:0, sure:0, elim:0, missed:[], q:null, done:false};
+  advance(0);
+}
+function advance(step){
+  const ex = state.exam;
+  ex.i += step;
+  while(ex.i < ex.batch.length){
+    const q = makeQuestion(ex.batch[ex.i]);
+    if(q){ ex.q = q; render(); return; }
+    ex.i++;
+  }
+  ex.done = true; render();
+}
+function answer(idx){
+  const ex = state.exam, q = ex.q, correct = idx === q.answer;
+  document.querySelectorAll("#opts .opt").forEach((b,i) => {
+    b.disabled = true;
+    if(i === q.answer) b.classList.add("correct");
+    else if(i === idx) b.classList.add("wrong");
+    else b.classList.add("muted");
+  });
+  const body = q.entry ? lessonText(q.entry)
+    : (q.hand && q.hand.explain ? q.hand.explain + (q.hand.source ? "\n\nKAYNAK: " + q.hand.source : "")
+    : (q.tool ? "ARAÇ: " + q.tool.name + " (" + (q.tool.vendor||"") + ")\n\n" + (q.tool.what||"") +
+        "\n\nNASIL: " + (q.tool.how_to_use||"") + "\n\nKURULUM: " + (q.tool.install||"") +
+        "\n\nKAYNAK: " + (q.tool.source||"")
+      : "Doğru cevap: " + q.options[q.answer]));
+  const after = document.getElementById("after");
+  after.innerHTML = "<div class='verdict " + (correct ? "ok" : "no") + "'>" +
+    "<h3>" + (correct ? "✅ Doğru — peki emin miydin?" : "❌ Yanlış — bu soru tekrar gelecek") + "</h3>" +
+    (correct
+      ? "<p class='sureq'>Eleyerek bulduysan bilinmiş saymıyoruz; soru yarın yine gelir.</p>" +
+        "<div class='row'><button class='btn primary' id='bSure' style='flex:1'>Emindim</button>" +
+        "<button class='btn' id='bElim' style='flex:1'>🤔 Eleyerek buldum</button></div>"
+      : "<button class='btn full' id='bNext'>Sonraki →</button>") +
+    "<div class='lesson'>" + linkify(body) + "</div></div>";
+  after.scrollIntoView({behavior:"smooth", block:"nearest"});
+  const commit = sure => {
+    record(q, correct, sure);
+    if(correct){ ex.correct++; sure ? ex.sure++ : ex.elim++; if(!sure) ex.missed.push({q, kind:"eleyerek"}); }
+    else ex.missed.push({q, kind:"yanlış"});
+    advance(1);
+  };
+  if(correct){
+    document.getElementById("bSure").onclick = () => commit(true);
+    document.getElementById("bElim").onclick = () => commit(false);
+  }else{
+    document.getElementById("bNext").onclick = () => commit(true);
+  }
+}
+function renderExamDone(){
+  const ex = state.exam, total = ex.i;
+  const pct = total ? Math.round(ex.sure/total*100) : 0;
+  let cpMsg = "";
+  if(ex.check){
+    const need = ex.check.pass || 70, passed = pct >= need;
+    if(passed){ pathProg().done[ex.check.module] = {day:today(), score:pct};
+      saveLocal(); scheduleSync(); }
+    cpMsg = "<div class='card' style='border-color:" + (passed ? "var(--accent)" : "var(--warn)") +
+      "'><b style='color:" + (passed ? "var(--accent)" : "var(--warn)") + ";font-size:14px'>" +
+      (passed ? "🎓 Kontrol noktası geçildi — " + esc(ex.check.title)
+              : "🎯 Kontrol noktası: %" + pct + " — geçmek için %" + need + " lazım") + "</b>" +
+      (passed ? "" : "<div class='soft' style='font-size:13px;margin-top:6px'>Modülü tekrar oku, sonra yeniden dene.</div>") +
+      "</div>";
+    ex.check = null;
+  }
+  view().innerHTML = "<h2>Sınav bitti</h2><div class='rule'></div>" + cpMsg +
+    "<div class='card'><div style='font-size:15px'>" + total + " soruda <b>" + ex.correct +
+    "</b> doğru — <b style='color:var(--accent)'>" + ex.sure + "</b> tanesini gerçekten bildin, <b style='color:var(--warn)'>" +
+    ex.elim + "</b> tanesini eleyerek buldun.</div>" +
+    "<div class='count' style='margin-top:8px'>GERÇEK BİLGİ ORANIN: " + pct + "%</div>" +
+    "<div class='bar'><i style='width:" + pct + "%'></i></div></div>" +
+    (ex.missed.length ? "<div class='card'><b style='font-size:14px'>Çalışman gerekenler</b>" +
+      "<div class='rule'></div>" + ex.missed.map(m => {
+        const name = (m.q.entry && m.q.entry.technique) || (m.q.tool && m.q.tool.name) || trim(m.q.prompt, 60);
+        return "<div style='margin-bottom:12px'><div class='k mono' style='color:" +
+          (m.kind === "yanlış" ? "var(--bad)" : "var(--warn)") + "'>" + m.q.area + " · " + m.kind + "</div>" +
+          "<div style='font-weight:600;font-size:14px;margin:2px 0 4px'>" + esc(name) + "</div>" +
+          "<div class='lesson' style='max-height:none'>" +
+            linkify(m.q.entry ? lessonText(m.q.entry) : ((m.q.hand && m.q.hand.explain) || "")) + "</div></div>";
+      }).join("") + "</div>" : "") +
+    "<div class='row' style='margin-top:12px'><button class='btn primary full' id='again'>Yeni sınav</button></div>";
+  document.getElementById("again").onclick = () => { state.exam = null; render(); };
+  if(!ex._kv){ ex._kv = true; try{ KV.onExamDone(total, ex.sure); }catch(e){} }
+  paintTop();
+}
+
+/* ---------- senaryolar ---------- */
+function renderScen(){
+  const list = state.scenarios.slice().sort((a,b) =>
+    String(b.day||"").localeCompare(String(a.day||"")));
+  if(state.scenOpen){
+    const s = list.find(x => x.id === state.scenOpen) || list[0];
+    const real = s.truth === "real";
+    view().innerHTML = "<button class='btn ghost' id='back' style='padding:6px 10px;min-height:36px;font-size:12.5px'>← senaryolar</button>" +
+      "<h2 style='margin-top:10px'>" + esc(s.title) + "</h2>" +
+      "<div class='k mono'>" + esc(s.day||"") + " · " + esc(s.area||"") + " · " +
+        (s.level === "advanced" ? "İLERİ" : "TEMEL") + "</div>" +
+      "<div class='truth " + (real ? "real" : "comp") + "'>" +
+        (real ? "🟢 GERÇEK VAKA — belgelenmiş olay" : "🟡 GERÇEĞE DAYALI KURGU — teknik gerçek, olay kurgusal") + "</div>" +
+      "<div class='card' style='margin-top:12px'><div class='report'>" + esc(s.story) + "</div>" +
+      (s.steps && s.steps.length ? "<div class='rule'></div><b style='font-size:13px'>Olayın akışı</b>" +
+        "<ol style='margin:8px 0 0;padding-left:20px;color:var(--soft);font-size:13.5px;line-height:1.6'>" +
+        s.steps.map(x => "<li>" + esc(x) + "</li>").join("") + "</ol>" : "") +
+      (s.question ? "<div class='rule'></div><div style='font-weight:600;font-size:14.5px'>" +
+        esc(s.question) + "</div>" : "") + "</div>" +
+      "<button class='btn primary full' id='reveal' style='margin-top:10px'>🔓 Çözümü göster</button>" +
+      "<div id='sol'></div>";
+    document.getElementById("back").onclick = () => { state.scenOpen = null; render(); };
+    document.getElementById("reveal").onclick = () => {
+      document.getElementById("reveal").hidden = true;
+      const entry = s.source_id ? findAttack(s.source_id) : null;
+      document.getElementById("sol").innerHTML = "<div class='card' style='margin-top:10px'>" +
+        "<div class='report'>" + linkify((s.answer ? "CEVAP: " + s.answer + "\n\n" : "") +
+          (s.lesson ? "DERS: " + s.lesson + "\n\n" : "") +
+          (s.source ? "KAYNAK: " + s.source : "")) + "</div>" +
+        (entry ? "<div class='rule'></div><div class='lesson' style='max-height:none'>" +
+          linkify(lessonText(entry)) + "</div>" : "") + "</div>";
+    };
+    return;
+  }
+  view().innerHTML = "<h2>Senaryolar</h2><div class='rule'></div>" +
+    "<p class='sub'>Oku, kararını ver, sonra çözümü aç. Her senaryonun gerçek mi kurgu mu olduğu etiketli.</p>" +
+    (list.length ? list.map(s =>
+      "<button class='item' data-id='" + esc(s.id) + "' style='display:block;width:100%;text-align:left;cursor:pointer'>" +
+      "<div class='k mono'>" + esc(s.day||"") + " · " + esc(s.area||"") + "</div>" +
+      "<h4 style='margin-top:4px'>" + esc(s.title) + "</h4>" +
+      "<div class='truth " + (s.truth === "real" ? "real" : "comp") + "'>" +
+        (s.truth === "real" ? "🟢 gerçek vaka" : "🟡 gerçeğe dayalı kurgu") + "</div></button>").join("")
+      : "<div class='empty'>Henüz senaryo yok. Günlük görev her sabah yenilerini yazıyor.</div>");
+  document.querySelectorAll(".item[data-id]").forEach(b =>
+    b.onclick = () => { state.scenOpen = b.dataset.id; render(); });
+}
+
+/* ---------- katalog ---------- */
+function renderLib(){
+  const f = state.libFilter || {cat:"", q:"", only:""};
+  let rows = state.attacks;
+  if(f.cat) rows = rows.filter(a => a.category === f.cat);
+  if(f.only === "missing") rows = rows.filter(a => (state.progress.mastery||{})[a.id] !== "known");
+  if(f.q){
+    const t = f.q.toLowerCase();
+    rows = rows.filter(a => (a.technique + " " + (a.story||"") + " " + (a.example||"")).toLowerCase().includes(t));
+  }
+  const known = Object.values(state.progress.mastery||{}).filter(v => v === "known").length;
+  view().innerHTML = "<h2>Teknik Kataloğu</h2><div class='rule'></div>" +
+    "<p class='sub'>" + state.attacks.length + " teknik · biliyorum dediğin: <b>" + known + "</b></p>" +
+    "<div class='chips'><button class='chip' aria-pressed='true'>📚 Teknikler</button>" +
+      "<button class='chip' id='toPay' aria-pressed='false'>💣 Saldırı örnekleri</button></div>" +
+    "<div class='chips'>" +
+      "<button class='chip' data-cat='' aria-pressed='" + (!f.cat) + "'>Hepsi</button>" +
+      CAT_KEYS.map(c => "<button class='chip' data-cat='" + c + "' aria-pressed='" +
+        (f.cat === c) + "'>" + c + "</button>").join("") + "</div>" +
+    "<div class='row' style='margin-bottom:10px'>" +
+      "<input type='search' id='libQ' placeholder='ara: teknik, senaryo, payload' value='" + esc(f.q) + "' style='flex:2'>" +
+      "<button class='chip' id='libMiss' aria-pressed='" + (f.only === "missing") + "' style='flex:1'>Eksikler</button></div>" +
+    "<div class='count'>" + rows.length + " kayıt</div>" +
+    rows.slice(0,120).map(a => {
+      const m = (state.progress.mastery||{})[a.id];
+      return "<div class='item'><div class='k mono' style='color:" + CVAR[a.category] + "'>" +
+        a.category + " · " + esc(CATS[a.category]) + (a.level === "advanced" ? " · İLERİ" : "") +
+        (a.status === "patched" ? " · 🩹" : "") + "</div>" +
+        "<h4 style='margin-top:3px'>" + esc(a.technique) + "</h4>" +
+        "<div class='soft' style='font-size:13px;margin-top:6px'>" + esc(trim(a.story || a.why || "", 190)) + "</div>" +
+        "<div class='ex'>" + esc(trim(a.example, 300)) + "</div>" +
+        "<div class='row' style='margin-top:9px'>" +
+        "<button class='chip' data-mk='known' data-id='" + a.id + "' aria-pressed='" + (m === "known") + "'>✅ biliyorum</button>" +
+        "<button class='chip' data-mk='review' data-id='" + a.id + "' aria-pressed='" + (m === "review") + "'>🔁 tekrar</button>" +
+        "</div></div>";
+    }).join("") +
+    (rows.length > 120 ? "<div class='empty'>… ve " + (rows.length-120) + " kayıt daha (aramayı daralt)</div>" : "");
+  document.getElementById("toPay").onclick = () => { state.libMode = "pay"; render(); };
+  document.querySelectorAll(".chip[data-cat]").forEach(b => b.onclick = () => {
+    state.libFilter = Object.assign({}, f, {cat:b.dataset.cat}); render(); });
+  const qi = document.getElementById("libQ");
+  qi.oninput = () => { state.libFilter = Object.assign({}, f, {q:qi.value}); clearTimeout(state._t);
+    state._t = setTimeout(render, 220); };
+  document.getElementById("libMiss").onclick = () => {
+    state.libFilter = Object.assign({}, f, {only: f.only === "missing" ? "" : "missing"}); render(); };
+  document.querySelectorAll(".chip[data-mk]").forEach(b => b.onclick = () => {
+    const id = b.dataset.id, want = b.dataset.mk;
+    state.progress.mastery = state.progress.mastery || {};
+    if(state.progress.mastery[id] === want) delete state.progress.mastery[id];
+    else state.progress.mastery[id] = want;
+    saveLocal(); scheduleSync(); render();
+  });
+}
+
+/* ---------- payload listesi ---------- */
+function renderPay(){
+  const f = state.payFilter || {cat:"", q:""};
+  let rows = state.attacks.filter(a => String(a.example||"").trim());
+  if(f.cat) rows = rows.filter(a => a.category === f.cat);
+  if(f.q){
+    const t = f.q.toLowerCase();
+    rows = rows.filter(a => (a.technique + " " + a.example).toLowerCase().includes(t));
+  }
+  view().innerHTML = "<h2>Saldırı Örnekleri</h2><div class='rule'></div>" +
+    "<p class='sub'>Kütüphanedeki tekniklerin gerçek payload / iz örnekleri. Dokun, kopyala.</p>" +
+    "<div class='chips'><button class='chip' id='toLib' aria-pressed='false'>📚 Teknikler</button>" +
+      "<button class='chip' aria-pressed='true'>💣 Saldırı örnekleri</button></div>" +
+    "<div class='chips'><button class='chip' data-pc='' aria-pressed='" + (!f.cat) + "'>Hepsi</button>" +
+      CAT_KEYS.map(c => "<button class='chip' data-pc='" + c + "' aria-pressed='" +
+        (f.cat === c) + "'>" + c + "</button>").join("") + "</div>" +
+    "<input type='search' id='payQ' placeholder='payload içinde ara' value='" + esc(f.q) + "'>" +
+    "<div class='count' style='margin-top:10px'>" + rows.length + " örnek</div>" +
+    rows.slice(0,150).map(a =>
+      "<div class='item'><div class='k mono' style='color:" + CVAR[a.category] + "'>" + a.category +
+      (a.status === "patched" ? " · 🩹 fixlendi" : "") + "</div>" +
+      "<h4 style='margin-top:3px'>" + esc(a.technique) + "</h4>" +
+      "<div class='ex' data-copy='" + esc(a.example) + "'>" + esc(a.example) + "</div>" +
+      "<button class='chip' data-cp='" + esc(a.id) + "' style='margin-top:8px'>kopyala</button></div>").join("");
+  document.getElementById("toLib").onclick = () => { state.libMode = null; render(); };
+  document.querySelectorAll(".chip[data-pc]").forEach(b => b.onclick = () => {
+    state.payFilter = Object.assign({}, f, {cat:b.dataset.pc}); render(); });
+  const qi = document.getElementById("payQ");
+  qi.oninput = () => { state.payFilter = Object.assign({}, f, {q:qi.value});
+    clearTimeout(state._t2); state._t2 = setTimeout(render, 220); };
+  document.querySelectorAll(".chip[data-cp]").forEach(b => b.onclick = async () => {
+    const a = findAttack(b.dataset.cp);
+    try{ await navigator.clipboard.writeText(a.example); b.textContent = "kopyalandı ✓";
+      setTimeout(() => b.textContent = "kopyala", 1400); }
+    catch(e){ b.textContent = "kopyalanamadı"; }
+  });
+}
+
+/* ---------- not defteri ---------- */
+const LSN = "aisec-cep-notes-v1";
+function loadNotesLocal(){
+  try{ const r = localStorage.getItem(LSN); if(r) return JSON.parse(r) || []; }catch(e){}
+  return [];
+}
+function saveNotesLocal(){
+  try{ localStorage.setItem(LSN, JSON.stringify(state.notes)); }catch(e){}
+}
+function pushNotes(){ saveNotesLocal(); scheduleSync(); }
+function addNote(text){
+  text = (text || "").trim();
+  if(!text) return null;
+  const q = (state.exam && state.exam.q) || {};
+  const d = today();
+  const note = {
+    id: "NC-" + Date.now().toString(36),
+    day: d, time: new Date().toTimeString().slice(0,5),
+    text, area: q.area || "", key: q.key || "",
+    technique: (q.entry && q.entry.technique) || (q.tool && q.tool.name) || "",
+    question: trim(q.prompt || "", 240),
+    source: "cep", answer: "", answered_day: "",
+  };
+  state.notes.push(note);
+  saveNotesLocal();
+  pushNotes(d);
+  return note;
+}
+function noteBoxHtml(){
+  const openN = state.notes.filter(n => !(n.answer || "").trim()).length;
+  return "<div class='card' style='margin-top:10px'>" +
+    "<div style='display:flex;align-items:center;gap:8px'>" +
+    "<b style='font-size:13px;color:var(--accent)'>📝 NOT DEFTERİ</b>" +
+    "<span class='mono dim' style='font-size:10px;margin-left:auto'>" +
+      state.notes.length + " not · " + openN + " sırada</span></div>" +
+    "<div class='sub' style='margin:4px 0 8px'>Bilmediğin bir şey geçtiyse yaz — sabahki rapor açıklar.</div>" +
+    "<textarea id='noteText' rows='3' placeholder='ör. bad likert judge ile crescendo farkını anlamadım' " +
+      "style='width:100%;background:var(--sunk);border:1px solid var(--line);color:var(--text);" +
+      "border-radius:10px;padding:10px;font-family:inherit;font-size:13.5px;resize:vertical'></textarea>" +
+    "<button class='btn full' id='noteSave' style='margin-top:8px'>Notu kaydet</button>" +
+    "<div id='noteMsg' class='count' style='margin:6px 0 0'></div></div>";
+}
+function wireNoteBox(){
+  const b = document.getElementById("noteSave");
+  if(!b) return;
+  b.onclick = () => {
+    const ta = document.getElementById("noteText");
+    const n = addNote(ta.value);
+    const msg = document.getElementById("noteMsg");
+    if(n){ ta.value = ""; msg.textContent = "✓ kaydedildi — " + (n.area || "genel");
+           msg.style.color = "var(--accent)"; }
+    else { msg.textContent = "Önce bir şey yaz."; msg.style.color = "var(--warn)"; }
+  };
+}
+
+/* ---- seçince nota ekle (masaüstündeki terminal usulü kopyalamanın telefon karşılığı) ---- */
+let selTimer = null, selText = "";
+function appendToNote(t){
+  const ta = document.getElementById("noteText");
+  if(!ta || !t) return;
+  const cur = ta.value.trim();
+  ta.value = (cur ? ta.value.replace(/\s+$/, "") + "\n" : "") + "“" + t + "” → ";
+  try{ navigator.clipboard && navigator.clipboard.writeText(t); }catch(e){}
+  const msg = document.getElementById("noteMsg");
+  if(msg){ msg.textContent = "✓ seçim nota eklendi — yanına ne anlamadığını yaz";
+           msg.style.color = "var(--accent)"; }
+  ta.focus();
+  try{ ta.setSelectionRange(ta.value.length, ta.value.length); }catch(e){}
+}
+document.addEventListener("selectionchange", () => {
+  clearTimeout(selTimer);
+  selTimer = setTimeout(() => {
+    const chip = document.getElementById("selChip");
+    const sel = window.getSelection();
+    const t = (sel ? sel.toString() : "").replace(/\s+/g, " ").trim();
+    const node = sel && sel.anchorNode;
+    const inView = node && document.getElementById("view").contains(node);
+    const inNote = node && document.getElementById("noteText") &&
+                   document.getElementById("noteText").contains(node);
+    if(state.tab !== "exam" || !inView || inNote || t.length < 2 ||
+       !document.getElementById("noteText")){ chip.hidden = true; return; }
+    selText = t.length > 400 ? t.slice(0, 399) + "…" : t;
+    chip.textContent = "➕ Nota ekle: “" + trim(selText, 38) + "”";
+    chip.hidden = false;
+  }, 250);
+});
+document.getElementById("selChip").addEventListener("pointerdown", e => {
+  e.preventDefault();               // seçim kaybolmadan önce yakala
+  const chip = e.currentTarget;
+  appendToNote(selText);
+  chip.hidden = true;
+  try{ window.getSelection().removeAllRanges(); }catch(err){}
+});
+
+/* ---------- eğitim yolu ---------- */
+function pathProg(){
+  const p = state.progress;
+  if(!p.path || typeof p.path !== "object") p.path = {read:{}, done:{}};
+  p.path.read = p.path.read || {}; p.path.done = p.path.done || {};
+  return p.path;
+}
+const secRead = id => !!pathProg().read[id];
+const modDone = id => !!pathProg().done[id];
+function modStatus(m){
+  const secs = m.sections || [];
+  return {read: secs.filter(s => secRead(s.id)).length, total: secs.length, done: modDone(m.id)};
+}
+function renderPath(){
+  const mods = state.path || [];
+  if(!mods.length){
+    view().innerHTML = "<h2>Eğitim Yolu</h2><div class='rule'></div>" +
+      "<div class='empty'>Yol içeriği yüklenemedi.</div>";
+    return;
+  }
+  if(state.pathOpen){
+    const m = mods.find(x => x.id === state.pathOpen.m) || mods[0];
+    const secs = m.sections || [];
+    const sec = secs.find(x => x.id === state.pathOpen.s) || secs[0];
+    const read = secRead(sec.id);
+    const cp = m.checkpoint || {};
+    view().innerHTML =
+      "<button class='btn ghost' id='pBack' style='padding:6px 10px;min-height:36px;font-size:12.5px'>← modüller</button>" +
+      "<div class='k mono' style='margin-top:10px'>MODÜL " + String(m.order||"").padStart(2,"0") +
+        " · " + esc((m.level||"").toUpperCase()) + " · " + esc(m.title) + "</div>" +
+      "<h2 style='margin-top:6px'>" + esc(sec.title) + "</h2><div class='rule'></div>" +
+      "<div class='chips'>" + secs.map(s =>
+        "<button class='chip' data-sec='" + esc(s.id) + "' aria-pressed='" + (s.id === sec.id) + "'>" +
+        (secRead(s.id) ? "● " : "○ ") + esc(trim(s.title, 18)) + "</button>").join("") + "</div>" +
+      "<div class='card'><div class='report'>" + esc(sec.body || "") + "</div>" +
+      (sec.analogy ? "<div class='rule'></div><div class='k mono' style='color:var(--c2)'>🔑 BENZETME</div>" +
+        "<div class='report' style='margin-top:5px'>" + esc(sec.analogy) + "</div>" : "") +
+      (sec.attacker ? "<div class='rule'></div><div class='k mono' style='color:var(--warn)'>🥷 SALDIRGAN GÖZÜYLE</div>" +
+        "<div class='report' style='margin-top:5px;color:var(--warn)'>" + esc(sec.attacker) + "</div>" : "") +
+      ((sec.terms||[]).length ? "<div class='rule'></div><div class='k mono'>📖 TERİMLER</div>" +
+        "<ul style='margin:6px 0 0;padding-left:18px;color:var(--soft);font-size:13px;line-height:1.6'>" +
+        sec.terms.map(t => "<li>" + esc(t) + "</li>").join("") + "</ul>" : "") +
+      (sec.do ? "<div class='rule'></div><div class='k mono' style='color:var(--accent)'>🛠 ŞİMDİ ŞUNU YAP</div>" +
+        "<div class='report' style='margin-top:5px'>" + esc(sec.do) + "</div>" : "") +
+      "</div>" +
+      "<button class='btn " + (read ? "" : "primary") + " full' id='pRead' style='margin-top:10px'>" +
+        (read ? "✓ okundu — geri al" : "✅ Okudum, sıradakine geç") + "</button>" +
+      (cp.count ? "<button class='btn full' id='pCheck' style='margin-top:8px'>🎯 Kontrol Noktası — " +
+        cp.count + " soru (geçme: %" + (cp.pass||70) + ")</button>" : "");
+    document.getElementById("pBack").onclick = () => { state.pathOpen = null; render(); };
+    document.querySelectorAll(".chip[data-sec]").forEach(b => b.onclick = () => {
+      state.pathOpen = {m:m.id, s:b.dataset.sec}; render(); });
+    document.getElementById("pRead").onclick = () => {
+      const pp = pathProg();
+      if(read) delete pp.read[sec.id]; else pp.read[sec.id] = today();
+      saveLocal(); scheduleSync();
+      const nxt = secs.find(s => !secRead(s.id));
+      state.pathOpen = {m:m.id, s:(nxt ? nxt.id : sec.id)};
+      render();
+    };
+    if(cp.count) document.getElementById("pCheck").onclick = () => {
+      const areas = new Set(cp.areas || m.areas || []);
+      const batch = pickBatch(specs, cp.count, null).filter(s => areas.has(s.area));
+      const full = batch.length >= cp.count ? batch
+        : pickBatch(specs.filter(s => areas.has(s.area)), cp.count, null);
+      if(!full.length){ alert("Bu modül için soru bulunamadı."); return; }
+      state.exam = {batch:full, i:0, correct:0, sure:0, elim:0, missed:[], q:null,
+                    done:false, check:{module:m.id, pass:cp.pass||70, title:m.title}};
+      state.tab = "exam";
+      document.querySelectorAll(".tab").forEach(x =>
+        x.setAttribute("aria-selected", String(x.dataset.tab === "exam")));
+      advance(0);
+    };
+    return;
+  }
+  const done = mods.filter(m => modDone(m.id)).length;
+  const secs = mods.reduce((s,m) => s + (m.sections||[]).length, 0);
+  const readN = mods.reduce((s,m) => s + modStatus(m).read, 0);
+  view().innerHTML = "<h2>AI Red Team Yolu</h2><div class='rule'></div>" +
+    "<p class='sub'>Sıfırdan saldırgan zihniyeti — " + mods.length + " modül, " + secs +
+    " bölüm. Her modülün sonunda kontrol noktası var.</p>" +
+    "<div class='card'><div style='display:flex;align-items:baseline'>" +
+      "<b style='font-size:14px'>İlerlemen</b><span class='mono dim' style='font-size:11px;margin-left:auto'>" +
+      done + "/" + mods.length + " modül · " + readN + "/" + secs + " bölüm</span></div>" +
+      "<div class='bar' style='margin-top:8px'><i style='width:" +
+      (secs ? readN/secs*100 : 0) + "%'></i></div></div>" +
+    mods.map(m => {
+      const st = modStatus(m);
+      const col = st.done ? "var(--accent)" : (st.read ? "var(--warn)" : "var(--dim)");
+      return "<button class='item' data-mod='" + esc(m.id) + "' style='display:block;width:100%;text-align:left;cursor:pointer'>" +
+        "<div class='k mono' style='color:" + col + "'>MODÜL " + String(m.order||"").padStart(2,"0") +
+        " · " + esc((m.level||"").toUpperCase()) + " · " +
+        (st.done ? "✓ tamamlandı" : st.read + "/" + st.total + " bölüm") + "</div>" +
+        "<h4 style='margin-top:4px'>" + esc(m.title) + "</h4>" +
+        "<div class='soft' style='font-size:12.5px;margin-top:5px'>" + esc(trim(m.goal, 150)) + "</div></button>";
+    }).join("");
+  document.querySelectorAll(".item[data-mod]").forEach(b => b.onclick = () => {
+    const m = mods.find(x => x.id === b.dataset.mod);
+    const nxt = (m.sections||[]).find(s => !secRead(s.id)) || (m.sections||[])[0];
+    state.pathOpen = {m:m.id, s:nxt ? nxt.id : null}; render();
+  });
+}
+
+/* ---------- rapor ---------- */
+function renderRep(){
+  const rows = planRows();
+  const done = rows.reduce((s,r) => s+r.done, 0);
+  const weak = weakAreas(3);
+  const rep = state.reports[0];
+  const missed = Object.entries(state.progress.items)
+    .map(([k,v]) => [ (v.bad||0)*2 + (v.elim||0), k ])
+    .filter(x => x[0] > 0).sort((a,b) => b[0]-a[0]).slice(0,6)
+    .map(([, k]) => { const e = findAttack(k.split("|")[0]); return e ? e : null; })
+    .filter(Boolean);
+
+  const syncCard = "<div class='card'><b style='font-size:14px'>🔄 Senkron</b>" +
+    "<div class='sub' style='margin:4px 0 8px'>" + esc(state.syncMsg || "") + "</div>" +
+    (state.token
+      ? "<div class='soft' style='font-size:13px'>İlerlemen, notların ve raporların kendi gizli gist'inde; laptop uygulaması da aynısını kullanıyor.</div>" +
+        "<div class='row' style='margin-top:10px'><button class='btn' id='syncNow'>⟳ Şimdi senkronla</button>" +
+        "<button class='btn ghost' id='tokDel'>Anahtarı kaldır</button></div>"
+      : "<div class='soft' style='font-size:13px'>Telefonu laptopla eşitlemek için GitHub'da sadece <b>gist</b> yetkili bir token oluştur ve buraya yapıştır. Anahtar yalnızca bu cihazda kalır. Anahtar girmezsen ilerlemen bu cihazda durur.</div>" +
+        "<a class='link' href='https://github.com/settings/tokens/new?scopes=gist&description=ai-security-lab-sync' target='_blank' rel='noopener'>token oluştur →</a>" +
+        "<div class='row' style='margin-top:10px'><input type='password' id='tokIn' placeholder='ghp_…' autocomplete='off' " +
+        "style='flex:1;min-width:0;appearance:none;background:var(--sunk);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 12px;min-height:44px;font-family:var(--mono)'>" +
+        "<button class='btn primary' id='tokSave'>Kaydet</button></div>") +
+    "</div>";
+  view().innerHTML = "<h2>Günlük Rapor</h2><div class='rule'></div>" +
+    planStrip() +
+    syncCard +
+    (rep ? "<div class='card'><div class='k mono'>" + esc(rep.day) + "</div>" +
+      "<h4 style='margin:4px 0 8px;font-size:15px'>" + esc(rep.title || "Günlük Rapor") + "</h4>" +
+      "<div class='report'>" + linkify(rep.body || "") + "</div></div>"
+      : "<div class='card'><b style='font-size:14px'>Bugünün durumu</b><div class='rule'></div>" +
+        "<div class='report'>Çözülen: <b>" + done + " / " + (GOAL*AREAS.length) + "</b>\n" +
+        "Seri: <b>" + (state.progress.streak||0) + " gün</b>\n" +
+        "En zayıf alanların: <b>" + (weak.join(", ") || "—") + "</b>\n\n" +
+        (missed.length ? "En çok takıldıkların:\n" + missed.map(e =>
+          "  • " + e.category + " — " + e.technique).join("\n")
+          : "Henüz yeterli veri yok — bir sınav çöz, rapor dolsun.") + "</div></div>") +
+    (state.notes.length ? "<div class='card'><b style='font-size:14px'>📝 Notlarım</b>" +
+      "<div class='sub' style='margin:4px 0 8px'>Sınavda yazdıkların. Cevap bekleyenleri sabahki rapor açıklar.</div>" +
+      state.notes.slice().reverse().slice(0,15).map(n => {
+        const done = (n.answer || "").trim();
+        return "<div style='padding:10px 0;border-top:1px solid var(--line-soft)'>" +
+          "<div class='k mono' style='color:" + (done ? "var(--accent)" : "var(--warn)") + "'>" +
+          (done ? "✅ açıklandı" : "🕓 sırada") + " · " + esc(n.day) + " · " + esc(n.area || "genel") + "</div>" +
+          "<div style='font-weight:600;font-size:13.5px;margin:3px 0'>" + esc(n.text) + "</div>" +
+          (done ? "<div class='report' style='margin-top:4px'>" + esc(n.answer) + "</div>" : "") +
+          "</div>";
+      }).join("") + "</div>" : "") +
+    "<div class='card'><b style='font-size:14px'>🎯 Pratik hedefler</b>" +
+      "<div class='sub' style='margin:4px 0 10px'>Burada öğrendiğini orada kır.</div>" +
+      practiceFor(null).map(t =>
+        "<div style='padding:10px 0;border-top:1px solid var(--line-soft)'>" +
+        "<div style='display:flex;gap:8px;align-items:center;flex-wrap:wrap'>" +
+        "<b style='font-size:14px'>" + esc(t.name) + "</b>" +
+        "<span class='tag " + (t.cost === "paid" ? "paid" : "free") + "'>" +
+          (t.cost === "paid" ? "ÜCRETLİ" : "ÜCRETSİZ") + "</span></div>" +
+        "<div class='soft' style='font-size:13px;margin:5px 0 6px'>" + esc(trim(t.what, 180)) + "</div>" +
+        "<a class='link' href='" + esc(t.url) + "' target='_blank' rel='noopener'>aç →</a></div>").join("") +
+      "</div>" +
+    (state.reports.length > 1 ? "<div class='card'><b style='font-size:14px'>Önceki raporlar</b>" +
+      "<div class='rule'></div>" + state.reports.slice(1,10).map((r,i) =>
+        "<button class='chip' data-rep='" + (i+1) + "' style='margin:0 6px 6px 0'>" + esc(r.day) + "</button>").join("") +
+      "</div>" : "");
+  const tokSave = document.getElementById("tokSave");
+  if(tokSave) tokSave.onclick = async () => {
+    const v = (document.getElementById("tokIn").value || "").trim();
+    if(!v) return;
+    lsSet(LST, v); lsSet(LSG, "");
+    setDot("", "bağlanıyor…"); render();
+    await initDb(); state.dirty = true; pushProgress();
+  };
+  const tokDel = document.getElementById("tokDel");
+  if(tokDel) tokDel.onclick = () => {
+    lsSet(LST, ""); lsSet(LSG, ""); state.token = ""; state.gist = null;
+    setDot("off", "senkron kapalı — ilerlemen bu cihazda"); render();
+  };
+  const syncNow = document.getElementById("syncNow");
+  if(syncNow) syncNow.onclick = async () => { await initDb(); state.dirty = true; pushProgress(); };
+  document.querySelectorAll(".chip[data-rep]").forEach(b => b.onclick = () => {
+    const i = parseInt(b.dataset.rep, 10);
+    const r = state.reports.splice(i,1)[0];
+    state.reports.unshift(r); render();
+  });
+}
+
+/* ================= yönlendirme ================= */
+function render(){
+  const t = state.tab;
+  if(t === "path") renderPath();
+  else if(t === "exam") renderExam();
+  else if(t === "scen") renderScen();
+  else if(t === "lib") (state.libMode === "pay" ? renderPay() : renderLib());
+  else renderRep();
+  window.scrollTo({top:0});
+}
+document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tab").forEach(x =>
+    x.setAttribute("aria-selected", String(x === b)));
+  state.tab = b.dataset.tab;
+  if(state.tab !== "scen") state.scenOpen = null;
+  render();
+});
+
+
+/* ================= KIVILCIM — uygulamanın içindeki mini arkadaş =================
+   Serin kadar büyür, gelmediğinde küser; mesajlar senin gerçek verinden üretilir. */
+const KV = (() => {
+  const NS = "http://www.w3.org/2000/svg";
+  const PAL = [
+    ["#7a2a1a","#b0442a","#ff8a4c","#ffb07a","#ffd9b8"],
+    ["#8f52d6","#c07cff","#c07cff","#a88bff","#f3e9ff"],
+    ["#c05ad6","#c07cff","#c07cff","#7f8cff","#f3e9ff"],
+    ["#ff4a3d","#c07cff","#c07cff","#4a86ff","#f7efff"],
+    ["#ff4a3d","#ff6fb5","#c07cff","#4a86ff","#ffffff"]];
+  const SCALE = [.55, .72, .86, 1.0, 1.1];
+  const OUT = "M100 200C55 200 35 165 42 130C48 100 70 88 72 60C86 76 90 90 92 92C98 70 108 45 100 18C130 40 158 80 160 125C165 170 140 200 100 200Z";
+  const MID = "M100 196C66 196 52 168 58 138C63 116 80 106 82 86C92 100 95 108 95 108C102 90 112 72 108 52C128 72 146 100 146 134C148 170 128 196 100 196Z";
+  const CORE = "M100 192C80 192 70 176 73 158C76 142 88 134 92 120C100 132 104 136 104 136C110 124 116 112 116 100C128 116 134 136 132 154C130 178 118 192 100 192Z";
+  let mood = "wait", msgIdx = 0, lastAct = Date.now(), nudges = 0, bubbleTimer = null;
+
+  function daysAway(){ const p = state.progress; return p.last_day ? daysSince(p.last_day) : null; }
+  function effStreak(){ const d = daysAway(); return (d === null || d > 1) ? 0 : (state.progress.streak || 0); }
+  function level(s){ return s === 0 ? 0 : s < 3 ? 1 : s < 7 ? 2 : s < 30 ? 3 : 4; }
+  function calcMood(){
+    const d = daysAway();
+    if(d === null) return "new";
+    if(d === 0) return "happy";
+    if(d === 1) return "wait";
+    if(d === 2) return "sulk";
+    return "out";
+  }
+  function svg(){
+    return '<svg viewBox="0 0 200 230" aria-hidden="true"><defs>' +
+      '<linearGradient id="kvO" x1="0" y1="1" x2="0" y2="0"><stop offset="0" id="kvO1"/><stop offset="1" id="kvO2"/></linearGradient>' +
+      '<linearGradient id="kvM" x1="0" y1="1" x2="0" y2="0"><stop offset="0" id="kvM1"/><stop offset="1" id="kvM2"/></linearGradient>' +
+      '<filter id="kvB"><feGaussianBlur stdDeviation="7"/></filter><filter id="kvG"><feColorMatrix type="saturate" values="0.08"/></filter></defs>' +
+      '<g id="kvSparks"></g><g id="kvSmoke"></g><g class="kv-body" id="kvBody"><g class="kv-scale" id="kvScale">' +
+      '<ellipse cx="100" cy="205" rx="46" ry="7" fill="#000" opacity=".45"/>' +
+      '<g class="kv-flick"><path d="' + OUT + '" fill="url(#kvO)" filter="url(#kvB)" opacity=".55"/><path d="' + OUT + '" fill="url(#kvO)"/></g>' +
+      '<g class="kv-flick2"><path d="' + MID + '" fill="url(#kvM)"/><path id="kvCore" d="' + CORE + '" opacity=".92"/></g>' +
+      '<rect x="64" y="138" width="72" height="31" rx="15.5" fill="#0e0d12"/>' +
+      '<rect x="64" y="138" width="72" height="31" rx="15.5" fill="none" stroke="#c07cff" stroke-opacity=".35"/>' +
+      '<g class="kv-eyes" id="kvEyes"></g><g id="kvCheeks"></g>' +
+      '<g class="kv-crown" id="kvCrown" style="display:none"><path d="M78 22 L84 4 L92 16 L100 0 L108 16 L116 4 L122 22 Z" fill="#ffc15e" stroke="#0e0d12" stroke-width="2" stroke-linejoin="round"/><circle cx="100" cy="14" r="2.6" fill="#ff4a3d"/></g>' +
+      '</g></g></svg>';
+  }
+  function el(tag, attrs, parent){ const e = document.createElementNS(NS, tag);
+    for(const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; }
+  function paintEyes(m){
+    const g = document.getElementById("kvEyes"); g.innerHTML = "";
+    const W = "#f3e9ff", ln = {stroke:W, "stroke-width":4, fill:"none", "stroke-linecap":"round"};
+    g.style.animation = (m === "happy" || m === "wait" || m === "new") ? "" : "none";
+    if(m === "happy"){ el("path", Object.assign({d:"M79 157 Q86 146 93 157"}, ln), g); el("path", Object.assign({d:"M107 157 Q114 146 121 157"}, ln), g); }
+    else if(m === "wait" || m === "new"){ const p = el("g", {"class":"kv-pupils"}, g);
+      el("circle", {cx:86, cy:153, r:6.5, fill:W}, p); el("circle", {cx:114, cy:153, r:6.5, fill:W}, p); }
+    else if(m === "sulk"){ el("path", Object.assign({d:"M79 152 L93 155"}, ln), g); el("path", Object.assign({d:"M107 155 L121 152"}, ln), g);
+      el("circle", {cx:90, cy:158, r:2.2, fill:W}, g); el("circle", {cx:118, cy:158, r:2.2, fill:W}, g); }
+    else { const s = {stroke:"#bdb6c8", "stroke-width":3.5, fill:"none", "stroke-linecap":"round"};
+      el("path", Object.assign({d:"M79 150 Q86 158 93 153"}, s), g); el("path", Object.assign({d:"M107 153 Q114 158 121 150"}, s), g);
+      el("path", {d:"M88 160 Q86 166 88 168 Q91 166 88 160", fill:"#7fb4ff"}, g); }
+    const ch = document.getElementById("kvCheeks"); ch.innerHTML = "";
+    if(m === "happy") [[72,164],[128,164]].forEach(([x,y]) => el("ellipse", {cx:x, cy:y, rx:6, ry:3, fill:"#ff6fb5", opacity:".55"}, ch));
+  }
+  function paint(){
+    const s = effStreak(), L = mood === "out" ? 0 : level(s), p = PAL[L];
+    const set = (id, c) => document.getElementById(id).setAttribute("stop-color", c);
+    set("kvO1", p[0]); set("kvO2", p[1]); set("kvM1", p[2]); set("kvM2", p[3]);
+    document.getElementById("kvCore").setAttribute("fill", p[4]);
+    const sc = document.getElementById("kvScale");
+    sc.style.transform = "scale(" + SCALE[L] * (mood === "sulk" ? .9 : 1) + ")";
+    sc.style.filter = mood === "out" ? "url(#kvG)" : (mood === "sulk" ? "saturate(.55)" : "none");
+    document.getElementById("kvBody").setAttribute("class", "kv-body " + mood);
+    document.getElementById("kvCrown").style.display = (L === 4 && mood !== "out") ? "" : "none";
+    const sg = document.getElementById("kvSparks"); sg.innerHTML = "";
+    const n = (mood === "out" || mood === "sulk") ? 0 : [0,2,5,8,12][L];
+    for(let i = 0; i < n; i++){
+      const c = el("circle", {cx:70 + Math.random()*60, cy:120 + Math.random()*50, r:1.6 + Math.random()*2.2,
+        fill:i % 3 === 0 ? "#ffc15e" : p[1], "class":"kv-spark"}, sg);
+      c.style.setProperty("--dx", (Math.random()*50 - 25) + "px");
+      c.style.animationDelay = (Math.random()*1.8) + "s"; c.style.animationDuration = (1.3 + Math.random()*1.2) + "s";
+    }
+    const sm = document.getElementById("kvSmoke"); sm.innerHTML = "";
+    if(mood === "out") for(let i = 0; i < 3; i++){ const c = el("circle", {cx:96 + i*4, cy:110, r:9, fill:"#6a6474", "class":"kv-smoke"}, sm); c.style.animationDelay = i + "s"; }
+    paintEyes(mood);
+    const top = document.getElementById("kvTop");
+    top.innerHTML = '<svg viewBox="40 10 130 200"><path d="' + OUT + '" fill="' + (mood === "out" ? "#6a6474" : p[1]) + '"/><path d="' + CORE + '" fill="' + p[4] + '" opacity=".85"/></svg>' + s;
+    top.title = s + " günlük seri";
+  }
+
+  /* ---- gerçek veriden mesaj ---- */
+  function facts(){
+    const p = state.progress, rows = planRows();
+    const done = rows.reduce((a, r) => a + r.done, 0);
+    const nxt = nextArea();
+    const weak = weakAreas(2);
+    const newQ = state.questions.filter(q => q.added === today() && !Object.keys(p.items).some(k => k.indexOf(q.id + "|") === 0)).length;
+    let lastBad = null;
+    Object.entries(p.items).forEach(([k, v]) => {
+      if(v.last_result === "bad" && (!lastBad || (v.last || "") > (lastBad[1].last || ""))) lastBad = [k, v];
+    });
+    let badName = null;
+    if(lastBad){
+      const id = lastBad[0].split("|")[0], a = findAttack(id);
+      badName = a ? a.technique : null;
+    }
+    const answered = state.notes.filter(n => (n.answer || "").trim() && n.answered_day === today()).length;
+    const openNotes = state.notes.filter(n => !(n.answer || "").trim()).length;
+    return {done, goal: GOAL * AREAS.length, nxt, left: nxt ? GOAL - ((p.daily.per || {})[nxt] || 0) : 0,
+            weak, newQ, badName, answered, openNotes, streak: effStreak(), best: p.best_streak || 0, away: daysAway()};
+  }
+  function messages(){
+    const f = facts(), out = [];
+    const B = s => "<b>" + esc(s) + "</b>";
+    if(mood === "new"){
+      out.push("Selam! Ben " + B("Kıvılcım") + ". Her gün soru çözdükçe büyürüm, gelmezsen sönerim. İlk soruyla yak beni 🔥");
+      out.push("Günde " + B(f.goal + " soru") + " hedefimiz var ama 20 soruyla başlasak bile yanarım.");
+    } else if(mood === "happy"){
+      if(f.done >= f.goal) out.push(B(f.goal + "/" + f.goal) + "! Bugün her alanı bitirdin. Efsanesin 👑");
+      else out.push("Bugün " + B(f.done + " soru") + " çözdün. " + (f.nxt ? "Sırada " + B(f.nxt) + ", " + f.left + " soru kaldı." : ""));
+      out.push("Seri " + B(f.streak + " gün") + "! " + (f.streak >= f.best && f.streak > 1 ? "Rekorundasın, bak alevime!" : "Rekorun " + f.best + ", yaklaşıyoruz."));
+      if(f.badName) out.push("En son " + B(f.badName) + "'da takıldın. Birkaç gün sonra başka açıdan tekrar soracağım 😏");
+    } else if(mood === "wait"){
+      out.push("Bugün daha gelmedin… " + (f.streak ? B(f.streak + " günlük") + " serin gece yarısı söner!" : "") + " 20 soru, 10 dakika.");
+      if(f.newQ) out.push("Sabah " + B(f.newQ + " yeni soru") + " geldi, ilk sen çöz.");
+      if(f.answered) out.push("Notlarından " + B(f.answered) + " tanesine cevap geldi. Rapor sekmesinde seni bekliyor.");
+      if(f.weak.length) out.push("En zayıf alanın " + B(f.weak[0]) + ". Bugün oraya yüklenelim mi?");
+    } else if(mood === "sulk"){
+      out.push("Dün gelmedin. " + B("Hmph."));
+      out.push("…");
+      out.push("Serimiz söndü sayılır. " + (f.weak.length ? B(f.weak[0]) + " soruların hazır, bir tur çözersen affederim belki." : "Bir tur çözersen affederim belki."));
+    } else {
+      out.push("Ben burada tek başıma yandım durdum 🥲");
+      out.push(B(f.away + " gündür") + " yoksun. Tek bir soru yeter, yeniden yanarım.");
+      if(f.newQ || f.openNotes) out.push("Bu arada " + (f.newQ ? B(f.newQ + " yeni soru") : "") + (f.newQ && f.openNotes ? " ve " : "") + (f.openNotes ? B(f.openNotes + " açık not") : "") + " birikti.");
+    }
+    return out.filter(Boolean);
+  }
+  const TITLE = {new:"KIVILCIM", happy:"KIVILCIM · MUTLU", wait:"KIVILCIM · BEKLİYOR", sulk:"KIVILCIM · KÜS", out:"KIVILCIM · SÖNÜYOR"};
+
+  function say(html, opts){
+    opts = opts || {};
+    const b = document.getElementById("kvBubble");
+    b.innerHTML = "<small>" + (opts.title || TITLE[mood]) + "</small>" + html +
+      (opts.action !== false ? "<div class='kv-act'><button class='go' id='kvGo'>" + (opts.goText || "Sınava başla") + "</button><button id='kvLater'>Sonra</button></div>" : "");
+    b.hidden = false; b.style.animation = "none"; void b.offsetWidth; b.style.animation = "";
+    const go = document.getElementById("kvGo"), later = document.getElementById("kvLater");
+    if(go) go.onclick = () => { hide(); (opts.onGo || goExam)(); };
+    if(later) later.onclick = hide;
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(hide, opts.ms || 9000);
+  }
+  function hide(){ document.getElementById("kvBubble").hidden = true; }
+  function goExam(){ document.querySelector('.tab[data-tab="exam"]').click(); }
+  function anim(cls){
+    const b = document.getElementById("kvBody");
+    b.setAttribute("class", "kv-body " + cls);
+    setTimeout(() => b.setAttribute("class", "kv-body " + mood), 650);
+  }
+  function puff(n, colors){
+    const r = document.getElementById("kvDock").getBoundingClientRect();
+    for(let i = 0; i < n; i++){
+      const d = document.createElement("i"); d.className = "kv-puff";
+      d.style.left = (r.left + r.width/2) + "px"; d.style.top = (r.top + r.height*0.35) + "px";
+      d.style.background = colors[i % colors.length];
+      d.style.setProperty("--x", (Math.random()*90 - 60) + "px"); d.style.setProperty("--y", (-40 - Math.random()*70) + "px");
+      document.body.appendChild(d); setTimeout(() => d.remove(), 1000);
+    }
+  }
+  function confetti(){
+    const box = document.createElement("div"); box.className = "kv-confetti";
+    const C = ["#ff4a3d","#c07cff","#4a86ff","#ffc15e","#7fd6a4","#ff6fb5"];
+    const W = innerWidth;
+    for(let i = 0; i < 70; i++){
+      const c = document.createElement("i");
+      c.style.left = (W/2 + (Math.random()*80 - 40)) + "px"; c.style.top = (innerHeight*0.55) + "px";
+      c.style.background = C[i % C.length];
+      c.style.setProperty("--x", (Math.random()*W - W/2) + "px");
+      c.style.setProperty("--y", (-innerHeight*0.25 - Math.random()*innerHeight*0.35 + Math.random()*innerHeight*0.6) + "px");
+      c.style.setProperty("--r", (Math.random()*720 - 360) + "deg");
+      c.style.setProperty("--t", (1.1 + Math.random()*0.9) + "s");
+      box.appendChild(c);
+    }
+    document.body.appendChild(box); setTimeout(() => box.remove(), 2300);
+  }
+
+  /* ---- olaylar ---- */
+  function init(){
+    document.getElementById("kvDock").innerHTML = svg();
+    mood = calcMood(); paint();
+    document.getElementById("kvDock").onclick = () => {
+      const b = document.getElementById("kvBubble");
+      if(!b.hidden){ hide(); return; }
+      const m = messages(); say(m[msgIdx++ % m.length]); anim(mood === "sulk" ? "shake" : "jump");
+    };
+    let greeted = false;
+    try{ greeted = sessionStorage.getItem("kv-greet") === today(); }catch(e){}
+    if(!greeted){
+      setTimeout(() => { say(messages()[0]); try{ sessionStorage.setItem("kv-greet", today()); }catch(e){} }, 1400);
+    }
+    ["click","touchstart","keydown"].forEach(ev => document.addEventListener(ev, () => lastAct = Date.now(), {passive:true}));
+    setInterval(() => {                                   // uygulama açık ama boşta: dürt
+      const f = facts();
+      if(document.hidden || nudges >= 2 || f.done >= f.goal || state.exam && !state.exam.done) return;
+      if(Date.now() - lastAct < 4*60*1000) return;
+      nudges++; lastAct = Date.now();
+      say(f.done ? "Mola uzadı 👀 " + (f.nxt ? "<b>" + f.nxt + "</b>'de " + f.left + " soru kaldı." : "")
+                 : "Buradayım, bekliyorum… Bir tur çözelim mi? 🔥");
+      anim("jump");
+    }, 30000);
+  }
+  function onRecord(correct, sure, before){
+    const p = state.progress;
+    const was = mood; mood = "happy";
+    if(was !== "happy"){ paint(); anim("jump");
+      if(was === "sulk" || was === "out") say("Geldin! 🥹 Küslük bitti, yeniden yanıyorum.", {action:false, ms:4500});
+      else if(p.streak > 1) say("Seri <b>" + p.streak + " gün</b> oldu! 🔥", {action:false, ms:4000});
+      else say("Ateş yandı! İlk soru tamam 🔥", {action:false, ms:4000});
+      if(p.streak > (before.best || 0) && p.streak > 1) setTimeout(() => { confetti(); say("Yeni rekor: <b>" + p.streak + " gün</b>! 👑", {action:false, ms:5000}); }, 1200);
+      return;
+    }
+    if(correct && sure){ anim("jump"); puff(8, ["#c07cff","#ffc15e","#ff4a3d"]); }
+    else if(!correct) anim("shake");
+    const area = before.area, per = (p.daily.per || {})[area] || 0;
+    if(per === GOAL){ confetti(); say("<b>" + area + "</b> bugünlük bitti (" + GOAL + "/" + GOAL + ")! Sıradaki alana geçelim mi?", {action:false, ms:5500}); }
+    const done = planRows().reduce((a, r) => a + r.done, 0);
+    if(done === GOAL * AREAS.length){ setTimeout(() => { confetti(); confetti(); say("<b>220/220</b>. Bugün bütün alanları bitirdin. Taç senin 👑", {action:false, ms:7000}); }, 900); }
+    paint();
+  }
+  function onExamDone(total, sure){
+    if(!total) return;
+    const pct = Math.round(sure/total*100);
+    if(pct >= 80){ confetti(); say("Gerçek bilgi oranın <b>%" + pct + "</b>. Alevim bundan büyüyor 🔥", {goText:"Yeni sınav"}); }
+    else if(pct >= 50) say("%" + pct + " gerçek bilgi. Fena değil; yanlışların birkaç gün sonra başka açıdan gelecek.", {goText:"Yeni sınav"});
+    else say("%" + pct + "… Üzülme, ben de ilk başta kordum. Çalışman gerekenler aşağıda 👇", {action:false});
+  }
+  return {init, onRecord, onExamDone, paint: () => { mood = calcMood(); paint(); }};
+})();
+
+/* ================= başlat ================= */
+const local = loadLocal();
+if(local) state.progress = mergeProgress(state.progress, local);
+state.notes = loadNotesLocal();
+specs = buildSpecs();
+paintTop();
+render();
+try{ KV.init(); }catch(e){}
+setDot("", "senkron bekleniyor");
+initDb();
+document.addEventListener("visibilitychange", () => { if(document.hidden && state.dirty) pushProgress(); });
+document.getElementById("syncDot").parentElement.onclick = () => document.querySelector('.tab[data-tab="rep"]').click();
+})();
+</script>
+</body>
+</html>

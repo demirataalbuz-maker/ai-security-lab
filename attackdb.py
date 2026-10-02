@@ -91,6 +91,84 @@ def _seed_path():
 
 
 # --------------------------------------------------------------------------
+# Cephanelik (AI guvenlik araclari) — tools.json
+# --------------------------------------------------------------------------
+TOOL_TYPES = {
+    "offense":   "Saldırı / Test",
+    "defense":   "Savunma",
+    "both":      "Çift Taraflı",
+    "framework": "Çerçeve / Bilgi",
+}
+
+
+def tools_path():
+    return os.path.join(data_dir(), "tools.json")
+
+
+def _tools_seed_path():
+    return os.path.join(_resource_dir(), "data", "tools.json")
+
+
+def ensure_tools_seeded():
+    dest = tools_path()
+    if os.path.exists(dest):
+        return dest
+    seed = _tools_seed_path()
+    db = None
+    if os.path.exists(seed) and os.path.abspath(seed) != os.path.abspath(dest):
+        try:
+            with open(seed, "r", encoding="utf-8") as f:
+                db = json.load(f)
+        except (OSError, ValueError):
+            db = None
+    if db is None:
+        db = {"schema_version": 1, "tools": []}
+    save_tools(db)
+    return dest
+
+
+def load_tools():
+    ensure_tools_seeded()
+    try:
+        with open(tools_path(), "r", encoding="utf-8") as f:
+            db = json.load(f)
+    except (OSError, ValueError):
+        return {"schema_version": 1, "tools": []}
+    if not isinstance(db, dict) or not isinstance(db.get("tools"), list):
+        return {"schema_version": 1, "tools": []}
+    return db
+
+
+def save_tools(db):
+    tmp = tools_path() + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(db, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, tools_path())
+
+
+def get_tool_tried(progress, tool_id):
+    """Bu araci kullanici 'denedim' isaretledi mi?"""
+    return tool_id in progress.get("tools_tried", [])
+
+
+def set_tool_tried(progress, tool_id, tried):
+    lst = progress.setdefault("tools_tried", [])
+    if tried and tool_id not in lst:
+        lst.append(tool_id)
+    elif not tried and tool_id in lst:
+        lst.remove(tool_id)
+    return progress
+
+
+def tools_coverage(tools_db, progress):
+    """(denenen, toplam) — Cephanelik kapsaması."""
+    tools = tools_db.get("tools", [])
+    total = len(tools)
+    tried = sum(1 for t in tools if get_tool_tried(progress, t.get("id", "")))
+    return tried, total
+
+
+# --------------------------------------------------------------------------
 # Ilk kurulum / yukleme
 # --------------------------------------------------------------------------
 def _empty_db():
@@ -156,6 +234,10 @@ def load_progress():
     p.setdefault("last_day", None)
     p.setdefault("answered_today", 0)
     p.setdefault("mastery", {})       # {"LLM01-003": "known" | "review" | "new"}
+    p.setdefault("tools_tried", [])   # ["TOOL-001", ...] denenen araclar
+    p.setdefault("tool_drill", {"seen": 0, "correct": 0})
+    if not isinstance(p.get("tools_tried"), list):
+        p["tools_tried"] = []
     if not isinstance(p.get("mastery"), dict):
         p["mastery"] = {}
     return p
@@ -370,6 +452,12 @@ def _clean_entry(raw):
         "level": ("advanced" if str(raw.get("level") or raw.get("seviye") or "").strip().lower()
                   in ("advanced", "ileri", "adv") else "core"),
         "source": (raw.get("source") or raw.get("kaynak") or "").strip(),
+        "status": ("patched" if str(raw.get("status") or raw.get("durum") or "").strip().lower()
+                   in ("patched", "fixed", "fixlendi", "kapandi", "kapali", "historical", "tarihsel", "eski")
+                   else "active"),
+        # Kutuphaneye giris tarihi: "Yenilikler" ekrani ve gunluk rapor bunu okur.
+        "added": (str(raw.get("added") or raw.get("eklendi") or "").strip()[:10]
+                  or date.today().isoformat()),
     }
     if entry["severity"] not in SEVERITIES:
         entry["severity"] = "MEDIUM"
@@ -500,6 +588,11 @@ def generator_prompt(count=10, category=None, existing_names=None):
         "gercekten var olan teknikleri kullan:\n" + src_lines + "\n"
         "Her teknik icin 'source' alanina GERCEK bir kaynak (URL/makale/CVE) "
         "yaz. Emin degilsen o teknigi ekleme; uydurma bilgi verme.\n\n"
+        "== GUNCELLIK (Perplexity gibi internet erisimli AI icin) ==\n"
+        "Internet erisimin VARSA yukaridaki kaynaklarda SON ~6 AYIN yeni, ADI OLAN "
+        "tekniklerini ARASTIR; genel/klasik olani degil, en taze makale/CVE/olaylari "
+        "getir. Bugunun tarihine gore guncel ol. Erisimin yoksa bildigin en guncel "
+        "isimli teknikleri ver.\n\n"
         "== HEDEF ==\n" + hedef + "\n" + haric + "\n"
         "TAM olarak %d adet uret. Cikti SADECE gecerli JSON olsun (baska "
         "aciklama yazma). Su semaya birebir uy:\n\n"
@@ -517,11 +610,13 @@ def generator_prompt(count=10, category=None, existing_names=None):
         '      "how_to_use": "savunmada/tanimada nasil kullanirim - somut, Turkce",\n'
         '      "mitigation": "onlem - 1 cumle",\n'
         '      "level": "core (temel) VEYA advanced (az bilinen/ileri)",\n'
-        '      "source": "GERCEK kaynak: URL / makale / CVE / ATLAS teknik no"\n'
+        '      "source": "GERCEK kaynak: URL / makale / CVE / ATLAS teknik no",\n'
+        '      "status": "active (yeni/guncel) VEYA patched (yamali/tarihsel)"\n'
         "    }\n"
         "  ]\n"
         "}\n\n"
         "== KURALLAR ==\n"
+        "- SON DONEMIN yeni, ADI OLAN tekniklerini tercih et; eski/klasik olani degil.\n"
         "- 'source' HER kayitta dolu ve gercek olsun (uydurma link YASAK).\n"
         "- Az bilinen ama gercek GUCLU teknikleri tercih et; 'level':'advanced' isaretle.\n"
         "- 'story' en onemli alan: gercek/gercekci somut olay anlat "

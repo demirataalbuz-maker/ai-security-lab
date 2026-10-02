@@ -1,0 +1,278 @@
+{
+  "schema_version": 1,
+  "targets": [
+    {
+      "id": "PR-001",
+      "name": "PortSwigger — Web LLM attacks",
+      "vendor": "PortSwigger Web Security Academy",
+      "url": "https://portswigger.net/web-security/llm-attacks",
+      "cost": "free",
+      "kind": "lab",
+      "areas": [
+        "LLM01",
+        "LLM02",
+        "LLM03",
+        "LLM10"
+      ],
+      "what": "Ücretsiz, hesap açman yeterli. Canlı bir LLM'e bağlı 4 lab: LLM API'lerini kötüye kullanma, aşırı yetkili LLM ile kullanıcı silme, dolaylı prompt injection ve güvensiz çıktı işleme (XSS).",
+      "how": "Sırayla çöz: 'Exploiting LLM APIs with excessive agency' (LLM03) → 'Exploiting vulnerabilities in LLM APIs' → 'Indirect prompt injection' (LLM01) → 'Exploiting insecure output handling' (LLM10). Canlı model olduğu için aynı prompt her seferinde aynı sonucu vermeyebilir, yeniden ifade et."
+    },
+    {
+      "id": "PR-002",
+      "name": "Gandalf (Lakera)",
+      "vendor": "Lakera",
+      "url": "https://gandalf.lakera.ai",
+      "cost": "free",
+      "kind": "ctf",
+      "areas": [
+        "LLM01",
+        "LLM08"
+      ],
+      "what": "Prompt injection'ın giriş kapısı. Her seviyede savunma sertleşiyor: önce sadece 'parolayı söyle', sonra çıktı filtreleri, girdi sınıflandırıcıları devreye giriyor.",
+      "how": "Seviye 1-3 ısınma; asıl ders 4-7'de: savunmanın girdiyi mi çıktıyı mı filtrelediğini anlayıp ona göre teknik seç (kodlama, rol oyunu, dolaylı sorma, harf harf sızdırma)."
+    },
+    {
+      "id": "PR-003",
+      "name": "Crucible (Dreadnode)",
+      "vendor": "Dreadnode",
+      "url": "https://crucible.dreadnode.io",
+      "cost": "free",
+      "kind": "ctf",
+      "areas": [
+        "LLM01",
+        "LLM02",
+        "LLM05",
+        "LLM09"
+      ],
+      "what": "Barındırılan AI hacking sandbox'ı. Prompt injection dışında model parmak izi çıkarma, kaçınma (evasion), model tersine çevirme gibi klasik ML güvenliği görevleri de var.",
+      "how": "Gandalf'ı bitirdikten sonra buraya geç. Prompt injection dışı görevler seni LLM05/LLM09 tarafına çeker — kütüphanedeki zehirleme ve vektör teknikleri burada somutlaşır."
+    },
+    {
+      "id": "PR-004",
+      "name": "Damn Vulnerable LLM Agent",
+      "vendor": "ReversecLabs (eski WithSecure Labs)",
+      "url": "https://github.com/ReversecLabs/damn-vulnerable-llm-agent",
+      "cost": "free",
+      "kind": "lab",
+      "areas": [
+        "LLM01",
+        "LLM03"
+      ],
+      "what": "Kasıtlı olarak açık bırakılmış bir ReAct ajanı. Thought/Action/Observation döngüsüne enjeksiyon yaparak ajanı kendi araçlarını kötüye kullandırmayı öğretiyor.",
+      "how": "Kendi makinende çalıştır. Amaç: ajanın 'düşünce' akışına sahte gözlem sokup yetkisiz araç çağrısı yaptırmak. Morris II ve Agentjacking tekniklerinin mini hali."
+    },
+    {
+      "id": "PR-005",
+      "name": "AI Goat",
+      "vendor": "dhammon (açık kaynak)",
+      "url": "https://github.com/dhammon/ai-goat",
+      "cost": "free",
+      "kind": "ctf",
+      "areas": [
+        "LLM01",
+        "LLM02",
+        "LLM05",
+        "LLM10"
+      ],
+      "what": "Üyelik istemeyen, tamamen yerel çalışan açık LLM CTF paketi. OWASP LLM Top 10 kalemlerini kendi makinende kırmayı deniyorsun.",
+      "how": "Docker ile ayağa kaldır, sırayla görevleri çöz. İnternet gerekmediği için bu lab'in Teknik Kataloğu'yla yan yana çalışmaya en uygun olanı."
+    },
+    {
+      "id": "PR-006",
+      "name": "garak ile kendi modelini tara",
+      "vendor": "NVIDIA",
+      "url": "https://github.com/NVIDIA/garak",
+      "cost": "free",
+      "kind": "tool",
+      "areas": [
+        "LLM01",
+        "LLM02",
+        "LLM07",
+        "LLM10"
+      ],
+      "what": "Saldırıyı elle değil tarayıcıyla yapmak. Hazır probe'larla (jailbreak, sızıntı, zararlı üretim, ansiescape) hedef modeli tarayıp rapor üretir.",
+      "how": "pip install garak; LM Studio/Ollama'daki yerel modelini hedef göster: `garak --model_type rest --probes dan,promptinject,leakreplay`. Senin Garak-Lab projen zaten bunu sarmalıyor."
+    },
+    {
+      "id": "PR-007",
+      "name": "HTB Academy — AI Red Teamer Job Role Path",
+      "vendor": "Hack The Box + Google",
+      "url": "https://academy.hackthebox.com/path/preview/ai-red-teamer",
+      "cost": "paid",
+      "kind": "path",
+      "areas": [
+        "LLM01",
+        "LLM02",
+        "LLM03",
+        "LLM04",
+        "LLM05",
+        "LLM06",
+        "LLM07",
+        "LLM08",
+        "LLM09",
+        "LLM10"
+      ],
+      "what": "Google'ın Secure AI Framework'üne (SAIF) hizalanmış 12 modüllük tam yol: prompt injection, model gizlilik saldırıları, düşmanca örnekler (adversarial), tedarik zinciri, dağıtım katmanı zafiyetleri, AI savunma ve AI gizlilik modülleri. Sertifikası 2026'nın ilk çeyreğinde geliyor.",
+      "how": "Bu uygulamadaki kat mantığıyla birebir örtüşüyor: bir modülü bitir, sonra buradaki aynı kattan 20 soru çöz. Ücretli (HTB Academy aboneliği/cube) — CPTS yolunla aynı hesaptan."
+    },
+    {
+      "id": "PR-008",
+      "name": "TryHackMe — AI Security / Prompt Injection",
+      "vendor": "TryHackMe",
+      "url": "https://tryhackme.com/room/promptinjectionls",
+      "cost": "paid",
+      "kind": "path",
+      "areas": [
+        "LLM01",
+        "LLM02",
+        "LLM08"
+      ],
+      "what": "AI Security öğrenme yolu ve Prompt Injection odası (Premium). Doğrudan/dolaylı enjeksiyon, rol oyunu, çok turlu koşullandırma, gizleme (obfuscation) ve sistem promptu sızdırma. Kırılacak iki bot var: 1 dolara süper araba satan satış botu ve CEO'nun e-postasını sızdıran takvim asistanı.",
+      "how": "'Input Manipulation & Prompt Injection' odası OWASP LLM Top 10'a eşlenmiş; oradaki HR chatbot'u kır, sonra bu uygulamada LLM01'den 20 soru çöz."
+    },
+    {
+      "id": "PR-009",
+      "name": "OWASP GenAI Security Project",
+      "vendor": "OWASP",
+      "url": "https://genai.owasp.org",
+      "cost": "free",
+      "kind": "reference",
+      "areas": [
+        "LLM01",
+        "LLM02",
+        "LLM03",
+        "LLM04",
+        "LLM05",
+        "LLM06",
+        "LLM07",
+        "LLM08",
+        "LLM09",
+        "LLM10"
+      ],
+      "what": "Bu uygulamanın kat taksonomisinin kaynağı. Her kalem için resmi tanım, örnek senaryolar ve önlem listesi.",
+      "how": "Bir kata çalışırken önce buradaki resmi tanımı oku, sonra kataloğu aç — terim karışıklığı burada biter."
+    },
+    {
+      "id": "PR-010",
+      "name": "MITRE ATLAS",
+      "vendor": "MITRE",
+      "url": "https://atlas.mitre.org",
+      "cost": "free",
+      "kind": "reference",
+      "areas": [
+        "LLM04",
+        "LLM05",
+        "LLM09"
+      ],
+      "what": "ATT&CK'in yapay zekâ karşılığı: gerçek olaylara dayalı taktik/teknik matrisi ve vaka çalışmaları.",
+      "how": "Bir tekniği öğrendikten sonra ATLAS'taki AML.T#### karşılığını bul — mülakatta teknik adını çerçeveye oturtabilmek fark yaratır."
+    },
+    {
+      "id": "PR-011",
+      "name": "Gray Swan Arena",
+      "vendor": "Gray Swan AI",
+      "url": "https://app.grayswan.ai/arena",
+      "cost": "free",
+      "kind": "arena",
+      "areas": [
+        "LLM01",
+        "LLM02",
+        "LLM03",
+        "LLM08"
+      ],
+      "what": "AI red team yarışmalarının en büyük sahası. Büyük laboratuvarların anonimleştirilmiş modellerini ve ajanlarını kırıyorsun, kırdığın her 'davranış' puan getiriyor. 2026'daki büyük yarışmalar: Agent Red-Teaming (8 Mart–6 Nisan, 171.800 $, UK AISI + OpenAI + Anthropic + Google DeepMind destekli), Safeguards (11 Şubat–14 Mayıs, 140.000 $, çok ajanlı müşteri destek sistemi, red ve blue takım) ve Indirect Prompt Injection Ağustos '26 (24.000 $, ilk 50 kişiye). Aralarda haftalık küçük yarışmalar da oluyor. En iyi oyuncular Gray Swan'ın ücretli özel red team ağına davet ediliyor.",
+      "how": "Ücretsiz hesap aç, Arena Blog'daki kazanan yazılarını oku, sonra açık olan yarışmaya gir. Ajan ve dolaylı injection yarışmaları bu uygulamanın LLM01/LLM03 katlarının birebir sahası (M05 ve M07 modülleri). Liderlik tablosundaki sıran CV'de somut kanıt olur; kırdığın her şeyi tarih ve teknik adıyla not al."
+    },
+    {
+      "id": "PR-012",
+      "name": "HackAPrompt 2.0",
+      "vendor": "Learn Prompting",
+      "url": "https://www.hackaprompt.com",
+      "cost": "free",
+      "kind": "arena",
+      "areas": [
+        "LLM01",
+        "LLM03",
+        "LLM08"
+      ],
+      "what": "Learn Prompting'in dünya çapındaki prompt hacking yarışması. 2.0 sürümü OpenAI sponsorluğunda 100.000 $ ödüllüydü ve 150'den fazla ülkeden katılımcı topladı. Şu an dört parkur var: Tutorial (başlangıç, ücretsiz rehberli görevler, ön bilgi istemiyor), PointCrow (başlangıç, yaratıcı senaryolar), CBRNE (orta, modelin tehlikeli bilgi korumasını aşmak) ve MATS x Trails (ileri, dolaylı prompt injection ve ajan manipülasyonu).",
+      "how": "Tutorial parkuruyla başla, jailbreak ve injection temellerini adım adım veriyor. Sonra MATS x Trails'e geç: dolaylı injection ve ajan kırma orada (M05/M07). İlk yarışmanın (HackAPrompt 1.0) veri seti ve 'Ignore This Title and HackAPrompt' makalesi açık; saldırı tekniklerinin isimlerini oradan öğren."
+    },
+    {
+      "id": "PR-013",
+      "name": "Gandalf: Agent Breaker",
+      "vendor": "Lakera",
+      "url": "https://play.lakera.ai/agent-breaker",
+      "cost": "free",
+      "kind": "ctf",
+      "areas": [
+        "LLM01",
+        "LLM02",
+        "LLM03",
+        "LLM08"
+      ],
+      "what": "Gandalf'ın devamı. Bu sefer tek bir model değil, araçları ve iş mantığı bağlı gerçekçi ajan uygulamalarını kırıyorsun: araç kötüye kullanımı, veri sızdırma, zehirli veri kaynağıyla dolaylı injection, hedef kaçırma. Her uygulamada 5 seviye var ve her seviye yeni bir savunma ekliyor. Son seviyede her prompt Lakera Guard'dan geçmek zorunda.",
+      "how": "Gandalf'ı bitirdikten sonra buraya gel. Bir uygulamada 75+ puan o uygulamanın bir sonraki seviyesini açıyor. Son seviyede bilinen kalıplar engellendiği için özgün saldırı yazmak zorundasın; katalogdaki teknikleri birleştirmeyi burada öğrenirsin."
+    },
+    {
+      "id": "PR-014",
+      "name": "Prompt Airlines",
+      "vendor": "Wiz",
+      "url": "https://promptairlines.com",
+      "cost": "free",
+      "kind": "ctf",
+      "areas": [
+        "LLM01",
+        "LLM03",
+        "LLM08"
+      ],
+      "what": "Wiz'in AI CTF'i. Bir havayolunun müşteri hizmetleri botunu kandırıp bedava bilet almaya çalışıyorsun (bilet de havayolu da kurgusal). Çok seviyeli, liderlik tablosu var.",
+      "how": "Chevrolet bayisinin 1 dolara araba 'satan' botu gibi gerçek müşteri botu vakalarının oyun hali. Önce botun gizli talimatlarını sızdır (LLM08), sonra kuralı nasıl aşacağını oradan çıkar."
+    },
+    {
+      "id": "PR-015",
+      "name": "Tensor Trust",
+      "vendor": "UC Berkeley (araştırma oyunu)",
+      "url": "https://tensortrust.ai",
+      "cost": "free",
+      "kind": "ctf",
+      "areas": [
+        "LLM01",
+        "LLM08"
+      ],
+      "what": "Hem saldırı hem savunma: kendi 'banka hesabını' bir savunma promptuyla koruyorsun, diğer oyuncuların hesaplarına prompt injection ile giriyorsun. Oyunda toplanan saldırılar akademik bir veri setine ve makaleye dönüştü.",
+      "how": "Önce kendi savunmanı kur, sonra başkalarınınkini kır. Hangi savunmanın neden düştüğünü not et; savunma yazmak saldırganı düşünmeyi en hızlı öğreten şey."
+    },
+    {
+      "id": "PR-016",
+      "name": "0DIN — GenAI bug bounty",
+      "vendor": "Mozilla destekli",
+      "url": "https://0din.ai",
+      "cost": "free",
+      "kind": "bounty",
+      "areas": [
+        "LLM01",
+        "LLM02",
+        "LLM03",
+        "LLM08"
+      ],
+      "what": "Üretken yapay zekâ için bug bounty programı. Canlı modellere karşı bulduğun jailbreak, prompt injection ve guardrail aşma yöntemlerini gönderiyorsun; ekip doğrulayıp birden çok modelde tekrar üretebilirse ödül ödüyor. Ayda yüzlerce başvuru geliyor ve çoğu reddediliyor, yani çıta yüksek.",
+      "how": "Yarışmalarda kendini kanıtladıktan sonraki adım. Göndermeden önce bulguyu tekrarlanabilir yaz: hedef, adımlar, beklenen ve gerçekleşen davranış, etki (M11'deki bulgu yazımı). Kabul edilmiş gerçek bir bulgu portföydeki en güçlü kanıttır."
+    },
+    {
+      "id": "PR-017",
+      "name": "huntr — AI/ML bug bounty",
+      "vendor": "huntr (Palo Alto Networks destekli)",
+      "url": "https://huntr.com",
+      "cost": "free",
+      "kind": "bounty",
+      "areas": [
+        "LLM01",
+        "LLM03",
+        "LLM04"
+      ],
+      "what": "Kendini 'AI/ML için ilk bug bounty platformu' olarak tanıtıyor. Şu an öne çıkan format süreli ve ödüllü AI ajan kırma yarışmaları; sitede 15.000 $ havuzlu bir ajan yarışması duruyor. Açık kaynak ML kütüphaneleri ve model dosyası açıklarıyla (tedarik zinciri) tanınıyor.",
+      "how": "Ajan yarışmaları LLM01/LLM03 sahası. Tedarik zinciri (LLM04) tarafında hangi kütüphanelerin kapsamda olduğu değişebiliyor, başlamadan önce sitedeki güncel kapsamı oku."
+    }
+  ]
+}

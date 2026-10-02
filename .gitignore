@@ -7,3 +7,5 @@ dist/
 *.pre_*
 .pytest_cache/
 Thumbs.db
+scratchpad/
+data/reports.json

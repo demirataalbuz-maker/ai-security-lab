@@ -1,7 +1,10 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('data', 'data'), ('theme', 'theme')]
+# Sadece ortak icerik gomulur; kisisel dosyalar (reports/progress/notes) exe'ye GIRMEZ.
+_content = ['attacks.json', 'tools.json', 'questions.json', 'scenarios.json',
+            'path.json', 'practice.json']
+datas = [('data/' + f, 'data') for f in _content] + [('theme', 'theme'), ('icon.ico', '.')]
 binaries = []
 hiddenimports = []
 tmp_ret = collect_all('customtkinter')
